@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>DMF Artafex — Field Spec</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Artafex Spec"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
+<style>
+:root{
+  --bg:#f4f3f1; --card:#fff; --ink:#1a1a1a; --mut:#6b6b6b; --line:#e2e0dc;
+  --accent:#111; --accentInk:#fff; --ok:#1f7a3d; --warn:#b07400; --bad:#a33; --chip:#efeee9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:0 14px 120px}
+header.top{position:sticky;top:0;z-index:30;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand h1{font-size:16px;letter-spacing:.14em;font-weight:700;margin:0;text-transform:uppercase}
+.brand .sub{font-size:11px;color:var(--mut);letter-spacing:.05em}
+.job{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.job input{width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px;font-size:13px}
+.job input.full{grid-column:1/3}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px}
+button.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+button.ghost{background:#fff}
+button.sm{padding:5px 9px;font-size:12px}
+button.danger{color:var(--bad);border-color:#e7c9c9}
+.room{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden}
+.room>.rhead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:#fbfbfa}
+.room>.rhead input{flex:1;border:none;background:transparent;font-weight:600;font-size:15px;padding:4px}
+.room>.rbody{padding:10px 12px}
+.group{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:#fff}
+.group .ghead{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.group .gname{flex:1;border:none;border-bottom:1px dashed var(--line);font-weight:600;padding:3px 2px}
+.group .qty{display:flex;align-items:center;gap:6px}
+.group .qty input{width:54px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:6px}
+.cfg{margin-top:8px;display:grid;gap:9px}
+.field label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.seg{border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:13px;background:#fff;user-select:none}
+.seg.on{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.seg.dis{opacity:.32;text-decoration:line-through;pointer-events:none}
+select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff;font-size:14px}
+.kit{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.kit h4{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.bom{font-size:13px}
+.bom .ln{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid #f0efec}
+.bom .ln .sku{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
+.bom .ln .d{color:var(--mut);flex:1;font-size:12px}
+.flag{font-size:10px;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle}
+.flag.v{background:#e3f3e8;color:var(--ok)}
+.flag.i{background:#f6edda;color:var(--warn)}
+.note{font-size:12px;color:var(--warn);margin-top:6px}
+.status{margin:2px 0 8px;font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px}
+.status.v{background:#e3f3e8;color:var(--ok)}
+.status.i{background:#f6edda;color:var(--warn)}
+.swatch{display:inline-block;width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.25);vertical-align:middle;margin-right:5px}
+.load{margin-top:8px;font-size:12px;color:var(--mut);border-top:1px dashed var(--line);padding-top:7px}
+.load b{color:var(--ink)}
+.docs{margin-top:7px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.docs a{font-size:12px;font-weight:600;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:4px 9px;background:#fff}
+.docs a:active{background:var(--chip)}
+.docs a.alt{font-weight:400;border:none;color:var(--mut);padding:4px 2px}
+.gnote{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px;font:inherit;font-size:13px;margin-top:8px;resize:vertical;min-height:38px}
+.existing{border:1px dashed var(--line);border-radius:10px;padding:9px;margin-bottom:10px;background:#faf9f6}
+.exhead{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.exrow{display:flex;gap:5px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.exrow .excount{width:48px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:6px}
+.exrow .exnote{flex:1;min-width:120px;border:1px solid var(--line);border-radius:7px;padding:6px;font-size:13px}
+.exrow select{padding:6px;font-size:13px}
+.exrow .exap{max-width:74px}
+.recon{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;margin-bottom:10px}
+.recon.open{background:#f6edda;color:var(--warn)}
+.recon.ok{background:#e3f3e8;color:var(--ok)}
+.addgroup{width:100%;border-style:dashed}
+.summary{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);z-index:40}
+.summary .inner{max-width:760px;margin:0 auto;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.summary .tot{font-size:13px}
+.summary .tot b{font-size:17px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto}
+.modal.show{display:flex}
+.sheet{background:#fff;border-radius:14px;max-width:720px;width:100%;padding:16px}
+.sheet h3{margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+td.sku{font-family:ui-monospace,Menlo,monospace;font-weight:600;white-space:nowrap}
+.muted{color:var(--mut)}
+.tag{display:inline-block;background:var(--chip);border-radius:6px;padding:1px 6px;font-size:11px;margin-right:4px}
+.hint{font-size:12px;color:var(--mut);margin:4px 0 0}
+hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div><h1>Artafex · Field Spec</h1><div class="sub">DMF jobsite take-off · Artafex 2 + 4 · verified SKUs</div></div>
+      <div class="btnrow" style="margin:0">
+        <button class="sm ghost" onclick="openReport()">Reports</button>
+      </div>
+    </div>
+    <div class="job">
+      <input class="full" id="jobName" placeholder="Jobsite name (e.g. 1420 Maple Residence)"/>
+      <input id="jobAddr" placeholder="Address / location"/>
+      <input id="jobDate" placeholder="Date" />
+    </div>
+    <div class="btnrow">
+      <button class="primary sm" onclick="addRoom()">+ Add room</button>
+      <button class="ghost sm" onclick="toggleDefaults()" id="defBtn">⚙ House defaults</button>
+      <button class="ghost sm" onclick="exportJSON()">Save / Export JSON</button>
+      <button class="ghost sm" onclick="document.getElementById('imp').click()">Load JSON</button>
+      <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(event)"/>
+      <button class="ghost sm danger" onclick="resetAll()">Clear</button>
+      <button class="ghost sm" id="offlineBtn" style="display:none" onclick="cacheOffline()">⬇ Save offline</button>
+    </div>
+  </header>
+
+  <div id="defaultsPanel"></div>
+  <div id="rooms"></div>
+  <p class="hint" id="empty" style="display:none">No rooms yet. Tap <b>+ Add room</b> (e.g. Kitchen), then add lighting groups within it (General, Over countertop, Under-cabinet…), set quantities, and configure each.</p>
+</div>
+
+<div class="summary">
+  <div class="inner">
+    <div class="tot">Fixtures: <b id="totFix">0</b> <span class="muted">· <b id="totW">0 W</b> load · <span id="totSku">0</span> SKUs</span><span id="reconWarn" style="color:var(--warn);font-weight:600"></span></div>
+    <div class="btnrow" style="margin:0"><button class="primary sm" onclick="openReport()">View buy-list →</button></div>
+  </div>
+</div>
+
+<div class="modal" id="reportModal">
+  <div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Take-off report</h3>
+      <button class="sm" onclick="closeReport()">Close ✕</button>
+    </div>
+    <div class="btnrow">
+      <button class="primary sm" onclick="exportExcel()">Excel (.xlsx)</button>
+      <button class="ghost sm" onclick="exportPDF()">PDF / Print</button>
+      <button class="ghost sm" onclick="exportJSON()">JSON</button>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DMF Artafex 4 — verified catalog data & SKU builders
+   Source of truth: Artafex 4 catalog + spec sheets (see
+   Artafex4_Verified_SKU_Reference.md). Keep in sync with that doc.
+   ============================================================ */
+const C = {
+  // Housing install types: code, label, shapes allowed, ratings allowed, restrictions
+  housings:[
+    {c:'NC',l:'New Construction',sh:['R','S'],rt:['S','F']},
+    {c:'RM',l:'Remodel',sh:['R','S'],rt:['S','F']},
+    {c:'LT',l:'Low Profile (3" plenum)',sh:['R','S'],rt:['S','F'],noDali:true},
+    {c:'CP',l:'Chicago Plenum',sh:['R','S'],rt:['S']},
+    {c:'NS',l:'Super Shallow',sh:['R','S'],rt:['S']},
+    {c:'SF',l:'Spray Foam',sh:['R','S'],rt:['S']},
+    {c:'DH',l:'Double Housing',sh:['R'],rt:['S'],lumMax:'10'},
+    {c:'CC',l:'Concrete Construction',sh:['R'],rt:[''],special:true,noDali:true},
+  ],
+  ratingLabel:{S:'Standard',F:'Fire Rated','':'—'},
+  lumens:[{c:'07',l:'750 lm'},{c:'10',l:'1000 lm'},{c:'12',l:'1250 lm'},{c:'15',l:'1500 lm'}],
+  cct:[{c:'27',l:'2700K',col:'#ffb265',desc:'Warm / cozy — like incandescent. Bedrooms, living, dining.'},
+       {c:'30',l:'3000K',col:'#ffca8c',desc:'Warm white — the go-to for most residential spaces.'},
+       {c:'35',l:'3500K',col:'#ffe0b4',desc:'Neutral white — kitchens, baths, work areas.'},
+       {c:'40',l:'4000K',col:'#fdf1de',desc:'Cool / crisp — task lighting, garages, display.'},
+       {c:'3W',l:'Warm Dim',col:'linear-gradient(90deg,#ff8a3d,#ffca8c)',desc:'Warms as it dims, 3000K→1800K (candle-like at low end).'},
+       {c:'T1',l:'Tunable White',col:'linear-gradient(90deg,#ff9d4d,#ffe6c4,#dcebff)',desc:'Adjustable 1800K–4000K on demand (requires PhaseX/DALI).'}],
+  wattByLum:{'07':9.5,'10':12.5,'12':14.3,'15':14.3},
+  beamD:[{c:'GA',l:'General Ambient 90°+'},{c:'NS',l:'Narrow Spot 15°'},{c:'SP',l:'Spot 25°'},
+         {c:'FL',l:'Flood 40°'},{c:'WF',l:'Wide Flood 60°'},{c:'LS',l:'Linear Spread'},{c:'SF',l:'Soft Focus'}],
+  beamA:[{c:'NS',l:'Narrow Spot 15°'},{c:'SP',l:'Spot 25°'},{c:'FL',l:'Flood 40°'},
+         {c:'LS',l:'Linear Spread 60×30'},{c:'SF',l:'Soft Focus'},
+         {c:'NH',l:'Narrow Spot + Hex'},{c:'SH',l:'Spot + Hex'},{c:'FH',l:'Flood + Hex'}],
+  dim:[{c:'T',l:'TRIAC/ELV'},{c:'D',l:'DALI-2'},{c:'X',l:'PhaseX'}],
+  modFinish:[{c:'',l:'Black (default)'},{c:'W',l:'White'}],
+  // Trim styles by shape+moduleType. style code + label
+  trimStyles:{
+    'R_D':[{c:'S',l:'Standard'},{c:'L',l:'Wall Wash / Sloped'},{c:'P',l:'Pinhole'},{c:'H',l:'Hyperbolic'}],
+    'S_D':[{c:'S',l:'Standard'},{c:'L',l:'Wall Wash / Sloped'},{c:'P',l:'Pinhole'},{c:'Q',l:'Round on Square'}],
+    'R_A':[{c:'S',l:'Standard'},{c:'P',l:'Pinhole'},{c:'H',l:'Hyperbolic'}],
+    'S_A':[{c:'Q',l:'Round on Square'},{c:'P',l:'Pinhole'}],
+  },
+  trimFinish:[{c:'WH',l:'White',v:true},{c:'BK',l:'Black'},{c:'BZ',l:'Bronze'},
+              {c:'CW',l:'Clear Diffuse / White Flange'},{c:'CC',l:'Custom Color'}],
+  // trim option: flange/decorative. Decorative only on Standard style.
+  trimOption:[{c:'',l:'Flanged (standard)'},{c:'FL',l:'Flangeless'},
+              {c:'DCF',l:'Decorative: Closed, Frosted',dec:true},
+              {c:'DCC',l:'Decorative: Closed Clear, Frosted Side',dec:true},
+              {c:'DCCF',l:'Decorative: Closed Clear, Frosted Inside',dec:true},
+              {c:'DOF',l:'Decorative: Open, Frosted',dec:true}],
+  // --- Retrofit (existing-fixture) path: Classic Retrofit Trims ---
+  rAper:[{c:'4',l:'4 inch'},{c:'5',l:'5 inch'},{c:'6',l:'6 inch'}],
+  rStyle:[{c:'S',l:'Smooth'},{c:'B',l:'Baffle'}],
+  rFin:[{c:'WH',l:'White',v:true},{c:'BK',l:'Black',v:true}],
+  rAdapter:[{c:'',l:'Hardwire (default PowerPlug)'},{c:'ED',l:'Edison'},{c:'GU',l:'GU-24'},{c:'M',l:'PowerPlug Male'}],
+  // --- Existing (as-found) site survey ---
+  existType:['Recessed can','MR16 / PAR','Surface / flush','Track head','Pendant','Fluorescent','Other'],
+  existAper:['6"','5"','4"','3"','2"','—'],
+  name:'Artafex 4', ap:'4"',
+};
+
+/* ============================================================
+   Artafex 2 — verified catalog + spec-sheet data
+   Module: ART2[D/A]+lum+T+cct+beam+dim (no finish code)
+   Housing: X2+install+shape (Remodel→RM TRIAC / RD digital)
+   Trim: X2T+shape+module+style+finish+option (MF/FL)
+   ============================================================ */
+const C2={
+  name:'Artafex 2', ap:'2"',
+  housings:[{c:'NC',l:'New Construction',sh:['R','S']},{c:'CP',l:'Chicago Plenum',sh:['R','S']},{c:'RM',l:'Remodel',sh:['R','S']}],
+  ratingLabel:C.ratingLabel, lumens:C.lumens, cct:C.cct, wattByLum:C.wattByLum, dim:C.dim,
+  beamD:[{c:'NS',l:'Narrow Spot 20°'},{c:'SP',l:'Spot 30°'},{c:'FL',l:'Flood 40°'},{c:'WF',l:'Wide Flood 50°'},{c:'LS',l:'Linear Spread 50×30'}],
+  beamA:[{c:'NS',l:'Narrow Spot 20°'},{c:'SP',l:'Spot 30°'},{c:'FL',l:'Flood 40°'},{c:'WF',l:'Wide Flood 50°'},{c:'LS',l:'Linear Spread 50×30'},
+         {c:'NH',l:'Narrow Spot + Hex'},{c:'SH',l:'Spot + Hex'},{c:'FH',l:'Flood + Hex'},{c:'WH',l:'Wide Flood + Hex'}],
+  modFinish:null,
+  trimStyles:{
+    'R_D':[{c:'S',l:'Standard'},{c:'W',l:'Wall Wash'},{c:'P',l:'Pinhole'},{c:'H',l:'Hyperbolic'}],
+    'S_D':[{c:'S',l:'Standard'},{c:'W',l:'Wall Wash'},{c:'P',l:'Pinhole'}],
+    'R_A':[{c:'S',l:'Standard'},{c:'P',l:'Pinhole'}],
+    'S_A':[{c:'S',l:'Standard'},{c:'P',l:'Pinhole'}],
+  },
+  trimFinish:[{c:'WH',l:'White',v:true},{c:'BK',l:'Black',v:true},{c:'BZ',l:'Bronze',v:true},{c:'CW',l:'Clear Diffuse',v:true},{c:'CC',l:'Custom',v:true},
+              {c:'BR',l:'Brass (prem)',v:true,prem:true},{c:'CO',l:'Copper (prem)',v:true,prem:true},{c:'GR',l:'Graphite (prem)',v:true,prem:true}],
+  trimOption:[{c:'MF',l:'Micro Flange'},{c:'FL',l:'Flangeless'},{c:'',l:'Flanged (Hyperbolic)',hypOnly:true},
+              {c:'DO',l:'Decorative: Open',dec:true},{c:'DH',l:'Decorative: Hyperbolic',dec:true,round:true},{c:'DF',l:'Decorative: Float',dec:true,square:true}],
+  rAper:[{c:'6',l:'6 inch'},{c:'45',l:'4" or 5"'}],
+  existType:C.existType, existAper:C.existAper,
+};
+const LINES={'4':C,'2':C2};
+function Lc(g){return (g&&g.line==='2')?C2:C;}
+
+/* ---- Document links: local bundle (./specs) + DMF hosted fallback ---- */
+const DOCS_B='https://cdn.sanity.io/files/joegrt4a/production/';
+const DOCS={
+  base:DOCS_B,
+  spec:{ // key = (PX?)+shape+moduleType ; RETRO for retrofit
+    'RD':{local:'specs/A4_Round_Downlight_Spec.pdf',  url:'5ef9707c3176f735e4b596de6704852a872532e0.pdf'},
+    'SD':{local:'specs/A4_Square_Downlight_Spec.pdf', url:'45111ac7740f18d618a4b0d33c22e33459756d29.pdf'},
+    'RA':{local:'specs/A4_Round_Adjustable_Spec.pdf', url:'18528ac7af74214efa8cd8b3eccd9515b2ab1ae0.pdf'},
+    'SA':{local:'specs/A4_Square_Adjustable_Spec.pdf',url:'a02291ef9e62a133e745194a3c4bd17c46d456f3.pdf'},
+    'PXRD':{local:'specs/A4_PhaseX_Round_Downlight_Spec.pdf', url:'9113eb70405165c63f9d56bf81c03312298b25d6.pdf'},
+    'PXSD':{local:'specs/A4_PhaseX_Square_Downlight_Spec.pdf',url:'d46cf8c7b5a1efc9db29a834ceddec31ee11ee83.pdf'},
+    'PXRA':{local:'specs/A4_PhaseX_Round_Adjustable_Spec.pdf',url:'02671d11e40e541bb525ec8c2fa6bc5fe0d68a56.pdf'},
+    'PXSA':{local:'specs/A4_PhaseX_Square_Adjustable_Spec.pdf',url:'d7565b24919042dbcfdb2041bf0cd8d2e2a500db.pdf'},
+    'RETRO':{local:'specs/A4_Classic_Retrofit_Spec.pdf', url:'https://cdn.shopify.com/s/files/1/0891/9567/5959/files/DMFLighting_ClassicRetrofitTrims_SpecSheet_1.pdf'},
+  },
+  spec2:{ // Artafex 2 (local bundle + hosted fallback)
+    'RD':{local:'specs/A2_Round_Downlight_Spec.pdf', url:DOCS_B+'84262a37be29031e7b8faae4239de1a4dc343360.pdf'},
+    'SD':{local:'specs/A2_Square_Downlight_Spec.pdf', url:DOCS_B+'4af63e1e2d165aaf6f0b2af5a94b996f9ad7a008.pdf'},
+    'RA':{local:'specs/A2_Round_Adjustable_Spec.pdf', url:DOCS_B+'335f1c12bcc09579295eb6f3901fd994f8cc395b.pdf'},
+    'SA':{local:'specs/A2_Square_Adjustable_Spec.pdf', url:'https://cdn.shopify.com/s/files/1/0891/9567/5959/files/DMFLighting_Artafex_2in_SquareAdjustable_SpecSheet.pdf?v=1772154206'},
+    'PXRD':{local:'specs/A2_PhaseX_Round_Downlight_Spec.pdf', url:DOCS_B+'4a48f97fa7ebcc14ab1cef965f1459e3b53b59da.pdf'},
+    'PXSD':{local:'specs/A2_PhaseX_Square_Downlight_Spec.pdf', url:DOCS_B+'24ec79007ac9f9c29141b551a357fdc07c39f663.pdf'},
+    'PXRA':{local:'specs/A2_PhaseX_Round_Adjustable_Spec.pdf', url:DOCS_B+'5b2d10ac0c6e60609f91ed607067a8966d635425.pdf'},
+    'PXSA':{local:'specs/A2_PhaseX_Square_Adjustable_Spec.pdf', url:DOCS_B+'e3e8ab9b9328b2e83d7ad86e41c327e2cd81f75c.pdf'},
+    'RETRO':{local:'specs/A2_Retrofit_Spec.pdf', url:DOCS_B+'07fcca3d8fb2a5f2990e950cf159f87340bb928f.pdf'},
+  },
+  install:{'D':'b2173f6334f67c1b25f7737896ec926afc4c4254.pdf','A':'3e4ee8beedae1a759687998dd9580ce71348b686.pdf','PX':'5a07cc157024b32de05169ce8bbec314377cc79b.pdf'},
+  ies:{'RD':'312b55a34923a6679ba59bcc78e375c40da0e85f.zip','SD':'d008ba9e1cd2111fa484d8c1e938fdc894fde1ab.zip','RA':'106fa6400f4c5e6e51d2b5e07efde9bc6b6bc4cc.zip','SA':'36c30f907247321fb3b6fc35b49d6a15193a8491.zip'},
+  ies2:{'RD':'5e6d1e6fe3e8daf6988b148ae09ed97c64e9c0d5.zip','SD':'5e6d1e6fe3e8daf6988b148ae09ed97c64e9c0d5.zip','RA':'da24d086602c4ae6cc22f12e17260664ed049e7b.zip','SA':'97dc7627ebeba561db844c8f334af934d7a91d7a.zip'},
+};
+function a2InstallUrl(g){
+  let h;
+  if(g.app==='retro') h=(g.shape==='S')?'dfb69f6d9f59584076126f5d9a1cabe9182d34ad.pdf':'a57cf3aec6234565fc4bba49037a796f6fbd6b24.pdf';
+  else if(g.app==='remodel'){ h=(g.dim==='D'||g.dim==='X')?'ccf3395a1fb7656b483cc1b1fc755c64ef6c0776.pdf':((g.shape==='S')?'aa63dbb5a40b4b564aaec8b8972e0e474636798a.pdf':'e296c73c10322d4035cf52273eb4d3a6bca61e2a.pdf'); }
+  else h='42b5248ea13790f3f13d467403356379ae1c6e55.pdf'; // New Construction (round/square)
+  return DOCS.base+h;
+}
+function docsFor(g){
+  const sh=g.shape||'R'; const mt=g.mType||'D'; const px=(g.dim==='X');
+  const specKey=(g.app==='retro' && (g.line||'4')!=='2')?'RETRO':((g.app==='retro')?'RETRO':((px?'PX':'')+sh+mt));
+  if((g.line||'4')==='2'){
+    const spec=DOCS.spec2[specKey]||DOCS.spec2['RD']; const ies=DOCS.ies2[sh+mt];
+    return { spec, specUrl: spec.url||null, install: a2InstallUrl(g), ies: ies?DOCS.base+ies:null };
+  }
+  const spec=DOCS.spec[specKey];
+  const ies=DOCS.ies[sh+mt]; const inst=px?DOCS.install.PX:DOCS.install[mt];
+  const su=(spec&&spec.url)?(spec.url.startsWith('http')?spec.url:DOCS.base+spec.url):null;
+  return { spec, specUrl:su, install: inst?DOCS.base+inst:null, ies: ies?DOCS.base+ies:null };
+}
+
+/* ---- SKU builders (verified grammar, line-aware) ---- */
+function skuHousing(g){
+  if(!g.install||!g.shape) return null;
+  if(g.line==='2'){
+    let inst=g.install; if(inst==='RM') inst=(g.dim==='D'||g.dim==='X')?'RD':'RM';
+    return 'X2'+inst+g.shape;
+  }
+  const h=C.housings.find(x=>x.c===g.install); if(!h) return null;
+  if(h.special) return 'M4CC';
+  if(!g.rating) return null;
+  return 'M4'+g.install+g.shape+g.rating;
+}
+function skuModule(g){
+  if(!g.mType||!g.lumens||!g.cct||!g.beam||!g.dim) return null;
+  if(g.line==='2') return 'ART2'+g.mType+g.lumens+'T'+g.cct+g.beam+g.dim;        // no finish code
+  return 'ART4'+g.mType+g.lumens+'T'+g.cct+g.beam+(g.mFin==='W'?'W':'')+g.dim;
+}
+function skuTrim(g){
+  if(!g.shape||!g.tStyle||!g.tFin) return null;
+  if(g.line==='2') return 'X2T'+g.shape+(g.mType||'D')+g.tStyle+g.tFin+(g.tOpt||'');
+  return 'M4T'+g.shape+g.tStyle+g.tFin+(g.tOpt||'');
+}
+function skuRetrofitTrim(g){ if(!g.rAper||!g.rStyle||!g.rFin) return null; return 'DRD2TR'+g.rAper+g.rStyle+g.rFin; }
+function skuAdapter(g){ return g.rAdapter?('DRD2X-QCM-'+g.rAdapter):null; }
+function a2Conversion(g){ if(g.rAper==='45') return 'X2KRRETRO45'; return g.shape==='S'?'X2KSRETRO6':'X2KRRETRO6'; }
+function descRetrofitTrim(g){
+  const a=(C.rAper.find(x=>x.c===g.rAper)||{}).l, s=(C.rStyle.find(x=>x.c===g.rStyle)||{}).l, fn=(C.rFin.find(x=>x.c===g.rFin)||{}).l;
+  return [a,s,fn].filter(Boolean).join(' · ')+' retrofit trim';
+}
+function descHousing(g){const D=Lc(g);const h=D.housings.find(x=>x.c===g.install);if(!h)return '';
+  let inst=h.l; if(g.line==='2'&&g.install==='RM') inst='Remodel'+((g.dim==='D'||g.dim==='X')?' (Digital)':' (TRIAC)');
+  return inst+((g.rating&&g.line!=='2')?(' · '+D.ratingLabel[g.rating]):'')+' · '+(g.shape==='R'?'Round':'Square');}
+function descModule(g){const D=Lc(g);
+  const lum=(D.lumens.find(x=>x.c===g.lumens)||{}).l, cc=(D.cct.find(x=>x.c===g.cct)||{}).l,
+        bm=((g.mType==='D'?D.beamD:D.beamA).find(x=>x.c===g.beam)||{}).l, dm=(D.dim.find(x=>x.c===g.dim)||{}).l;
+  return (g.mType==='D'?'Downlight':'Adjustable')+' · '+[lum,cc,bm,dm].filter(Boolean).join(' · ');}
+function descTrim(g){const D=Lc(g);const st=((D.trimStyles[g.shape+'_'+g.mType]||[]).find(x=>x.c===g.tStyle)||{}).l;
+  const fn=(D.trimFinish.find(x=>x.c===g.tFin)||{}).l;
+  const op=(D.trimOption.find(x=>x.c===(g.tOpt||''))||{}).l;
+  return [st,fn,op].filter(Boolean).join(' · ');}
+
+/* ---- compatibility / availability (line-aware) ---- */
+function lumensAvail(g){const D=Lc(g);
+  return D.lumens.filter(o=>{
+    if(g.mType==='A' && (o.c==='12'||o.c==='15')) return false;
+    const h=D.housings.find(x=>x.c===g.install);
+    if(h&&h.lumMax==='10'&&(o.c==='12'||o.c==='15')) return false;
+    if((g.cct==='3W'||g.cct==='T1') && o.c!=='10') return false;
+    return true;
+  });
+}
+function cctAvail(g){const D=Lc(g);
+  return D.cct.filter(o=>{
+    if((o.c==='3W'||o.c==='T1')){
+      if(g.lumens && g.lumens!=='10') return false;
+      if(g.beam==='SF') return false;
+      if(g.dim==='D') return false;
+    }
+    return true;
+  });
+}
+function beamAvail(g){const D=Lc(g);const list=(g.mType==='A')?D.beamA:D.beamD;
+  return list.filter(o=>{ if((g.cct==='3W'||g.cct==='T1') && o.c==='SF') return false; return true; });
+}
+function dimAvail(g){const D=Lc(g);
+  return D.dim.filter(o=>{
+    const h=D.housings.find(x=>x.c===g.install);
+    if(o.c==='D'&&h&&h.noDali) return false;
+    if(o.c==='D'&&(g.cct==='3W'||g.cct==='T1')) return false;
+    return true;
+  });
+}
+function housingAvail(g){return Lc(g).housings.filter(h=>h.sh.includes(g.shape||'R'));}
+function ratingAvail(g){const h=Lc(g).housings.find(x=>x.c===g.install); if(!h||!h.rt) return []; return h.rt;}
+function trimStyleAvail(g){return Lc(g).trimStyles[(g.shape||'R')+'_'+(g.mType||'D')]||[];}
+function trimFinishAvail(g){return Lc(g).trimFinish.filter(o=>{ if(o.prem && g.tStyle!=='S') return false; return true; });}
+function trimOptionAvail(g){const D=Lc(g);
+  return D.trimOption.filter(o=>{
+    if(o.dec){ if(g.tStyle!=='S') return false; if(o.round&&g.shape!=='R') return false; if(o.square&&g.shape!=='S') return false; }
+    if(g.line==='2'){
+      const isH=(g.tStyle==='H');
+      if(o.c==='MF') return !isH;
+      if(o.c==='') return isH;
+      if(o.c==='FL') return g.install!=='RM' || g.app==='retro';
+      if(o.dec) return (g.install!=='RM'||g.app==='retro') && !isH;
+    }
+    return true;
+  });
+}
+
+/* ---- connected load (verified module wattage) ---- */
+function fixtureWatts(g){
+  let w=(Lc(g).wattByLum||C.wattByLum)[g.lumens]||0;
+  if(g.lumens==='10' && (g.dim==='D'||g.dim==='X')) w=14.5;
+  return w;
+}
+function fmtW(w){ return (Math.round(w*10)/10)+' W'; }
+
+/* ---- per-group kit BOM (per single fixture, line-aware) ---- */
+function groupKit(g){
+  const D=Lc(g); const lines=[]; const mv=skuModule(g);
+  const finV=()=>{const fin=D.trimFinish.find(x=>x.c===g.tFin); return !!(fin&&fin.v===true);};
+  if(g.app==='retro'){
+    if(g.line==='2'){
+      if(mv) lines.push({sku:mv,desc:descModule(g),v:true,role:'Module'});
+      const tv=skuTrim(g); if(tv) lines.push({sku:tv,desc:descTrim(g),v:finV(),role:'Trim'});
+      lines.push({sku:a2Conversion(g),desc:(g.rAper==='45'?'4"/5"':'6"')+'→2" Conversion Kit',v:true,role:'Accessory',auto:true});
+      if(g.tOpt==='FL') lines.push({sku:g.shape==='S'?'X2KSMUD':'X2KRMUD',desc:'Flangeless Mud Kit',v:true,role:'Accessory',auto:true});
+      return lines;
+    }
+    if(mv) lines.push({sku:mv,desc:descModule(g),v:true,role:'Module'});
+    const rt=skuRetrofitTrim(g); if(rt) lines.push({sku:rt,desc:descRetrofitTrim(g),v:true,role:'Trim'});
+    const ad=skuAdapter(g); if(ad) lines.push({sku:ad,desc:(C.rAdapter.find(x=>x.c===g.rAdapter)||{}).l+' adapter',v:true,role:'Adapter'});
+    if(g.dim==='D') lines.push({sku:'DID2X-'+(g.beam||''),desc:'DALI-2 interface',v:true,role:'Control',auto:true});
+    return lines;
+  }
+  const hv=skuHousing(g); if(hv) lines.push({sku:hv,desc:descHousing(g),v:true,role:'Housing'});
+  if(mv) lines.push({sku:mv,desc:descModule(g),v:true,role:'Module'});
+  const tv=skuTrim(g); if(tv) lines.push({sku:tv,desc:descTrim(g),v:finV(),role:'Trim'});
+  if(g.tOpt==='FL' && g.shape){
+    if(g.line==='2') lines.push({sku:g.shape==='S'?'X2KSMUD':'X2KRMUD',desc:'Flangeless Mud Kit',v:true,role:'Accessory',auto:true});
+    else lines.push({sku:g.shape==='R'?'M4XRMUD':'M4XSMUD',desc:'Flangeless Mud Plate (drywall)',v:true,role:'Accessory',auto:true});
+  }
+  if(g.from6 && g.shape && g.line!=='2'){
+    lines.push({sku:g.shape==='R'?'M4KRRETRO6':'M4KSRETRO6',desc:'6"→4" Conversion Kit',v:true,role:'Accessory',auto:true});
+  }
+  if(g.dim==='D' && g.line!=='2'){ lines.push({sku:'DID'+(g.mType==='A'?'4':'2')+'X-'+(g.beam||''),desc:'DALI-2 interface',v:true,role:'Control',auto:true}); }
+  return lines;
+}
+function groupStatus(g){
+  const k=groupKit(g);
+  const need = g.app==='retro' ? ['Module','Trim'] : ['Housing','Module','Trim'];
+  const have = new Set(k.filter(l=>l.sku && !/-$/.test(l.sku)).map(l=>l.role));
+  const missing = need.filter(r=>!have.has(r));
+  const unverified = k.filter(l=>l.v===false).length;
+  if(missing.length) return {ok:false,label:'Incomplete — set: '+missing.join(', '),cls:'i'};
+  if(unverified) return {ok:false,label:'Verify finish code before quoting',cls:'i'};
+  return {ok:true,label:'Verified compatible kit — OK to quote',cls:'v'};
+}
+function groupNotes(g){
+  const n=[];
+  if(g.dim==='X') n.push('PhaseX: requires PhaseX Gateway ART-GWX (1 per ≤64 fixtures) — added at job level.');
+  if(g.line==='2'){
+    if(g.dim==='D') n.push('DALI-2: confirm the DALI interface device on the spec sheet.');
+    if(g.tOpt==='FL') n.push('Flangeless on a wood ceiling → use the Wood Kit ('+(g.shape==='S'?'X2KSWOOD':'X2KRWOOD')+') / Router Template instead of the Mud Kit.');
+    if(g.tOpt==='MF') n.push('Micro-Flange trim includes a Precision Lock Collar (bundled).');
+    return n;
+  }
+  if(g.app==='retro'){
+    if(!g.rAdapter) n.push('No adapter selected: module ships with PowerPlug male-to-leads (hardwire). For an existing MR16, bypass/remove the transformer or use the Edison adapter if a medium-base socket is present.');
+    return n;
+  }
+  if(g.tOpt==='FL') n.push('Flangeless on wood ceiling → use Router Template ('+(g.shape==='R'?'M4KRTEMPLATE':'M4KSTEMPLATE')+') instead of Mud Plate.');
+  if(g.tFin&&g.tFin!=='WH') n.push('Non-white trim finish: catalog prints White SKUs only — verify '+g.tFin+' part code before ordering.');
+  return n;
+}
+
+/* ============================================================
+   State + persistence
+   ============================================================ */
+const LS='dmf_artafex4_job_v1';
+function baseDefaults(){return {line:'4',app:'new',shape:'R',install:'NC',rating:'S',from6:false,
+  mType:'D',lumens:'10',cct:'30',beam:'NS',dim:'T',mFin:'',tStyle:'S',tFin:'WH',tOpt:'',
+  rAper:'4',rStyle:'S',rFin:'WH',rAdapter:''};}
+let JOB = load() || newJob();
+if(!JOB.defaults) JOB.defaults=baseDefaults();
+function newJob(){return {name:'',addr:'',date:new Date().toLocaleDateString(),defaults:baseDefaults(),rooms:[]};}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function save(){localStorage.setItem(LS,JSON.stringify(JOB));}
+function load(){try{return JSON.parse(localStorage.getItem(LS));}catch(e){return null;}}
+
+function addRoom(){JOB.rooms.push({id:uid(),name:'',existing:[],groups:[]});render();save();}
+function addExisting(rid){const r=JOB.rooms.find(x=>x.id===rid);(r.existing=r.existing||[]).push({type:C.existType[0],aper:'6"',count:1,note:''});render();save();}
+function delExisting(rid,i){const r=JOB.rooms.find(x=>x.id===rid);r.existing.splice(i,1);render();save();}
+function addGroup(rid){const r=JOB.rooms.find(x=>x.id===rid);r.groups.push(defaultGroup());render();save();}
+function defaultGroup(){return Object.assign({id:uid(),name:'',qty:1}, JSON.parse(JSON.stringify(JOB.defaults||baseDefaults())));}
+function delRoom(rid){JOB.rooms=JOB.rooms.filter(x=>x.id!==rid);render();save();}
+function delGroup(rid,gid){const r=JOB.rooms.find(x=>x.id===rid);r.groups=r.groups.filter(x=>x.id!==gid);render();save();}
+function cloneGroup(g){const c=JSON.parse(JSON.stringify(g));c.id=uid();return c;}
+function dupGroup(rid,gid){const r=JOB.rooms.find(x=>x.id===rid);const i=r.groups.findIndex(x=>x.id===gid);const c=cloneGroup(r.groups[i]);c.name=(c.name||'Group')+' (copy)';r.groups.splice(i+1,0,c);render();save();}
+function dupRoom(rid){const i=JOB.rooms.findIndex(x=>x.id===rid);const c=JSON.parse(JSON.stringify(JOB.rooms[i]));c.id=uid();c.name=(c.name||'Room')+' (copy)';c.groups.forEach(g=>g.id=uid());JOB.rooms.splice(i+1,0,c);render();save();}
+function roomFixtures(r){return r.groups.reduce((s,g)=>s+(g.qty||1),0);}
+function roomWatts(r){return r.groups.reduce((s,g)=>s+fixtureWatts(g)*(g.qty||1),0);}
+function jobWatts(){return JOB.rooms.reduce((s,r)=>s+roomWatts(r),0);}
+function existingCount(r){return (r.existing||[]).reduce((s,x)=>s+(+x.count||0),0);}
+function roomRecon(r){
+  const ex=existingCount(r); if(ex===0) return {state:'none'};
+  const pr=roomFixtures(r); const gap=ex-pr; const sig=ex+'/'+pr;
+  if(gap<=0) return {state:'ok',ex,pr,gap};
+  if(r.reviewedSig===sig) return {state:'reviewed',ex,pr,gap};
+  return {state:'open',ex,pr,gap};
+}
+function reviewRoom(rid){const r=JOB.rooms.find(x=>x.id===rid);r.reviewedSig=existingCount(r)+'/'+roomFixtures(r);render();save();}
+function reconEl(r){
+  const rc=roomRecon(r); if(rc.state==='none') return null;
+  const box=document.createElement('div'); box.className='recon '+(rc.state==='open'?'open':'ok');
+  if(rc.state==='open'){
+    const t=document.createElement('span'); t.innerHTML='⚠ '+rc.ex+' existing · '+rc.pr+' proposed · <b>'+rc.gap+' unaccounted</b>';
+    const b=document.createElement('button'); b.className='sm'; b.textContent='Reviewed: intentional'; b.onclick=()=>reviewRoom(r.id);
+    box.appendChild(t); box.appendChild(b);
+  } else if(rc.state==='reviewed'){
+    box.textContent='✓ Reviewed — intentional reduction ('+rc.ex+'→'+rc.pr+')';
+  } else {
+    const extra=rc.pr-rc.ex;
+    box.textContent='✓ '+rc.ex+' existing · '+rc.pr+' proposed — '+(extra>0?('adding '+extra+' new'):'all accounted');
+  }
+  return box;
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function render(){
+  document.getElementById('jobName').value=JOB.name||'';
+  document.getElementById('jobAddr').value=JOB.addr||'';
+  document.getElementById('jobDate').value=JOB.date||'';
+  const root=document.getElementById('rooms'); root.innerHTML='';
+  JOB.rooms.forEach(r=>{if(!r.existing)r.existing=[];});
+  document.getElementById('empty').style.display=JOB.rooms.length?'none':'block';
+  JOB.rooms.forEach(r=>root.appendChild(roomEl(r)));
+  renderDefaults();
+  updateTotals();
+}
+let showDefaults=false;
+function toggleDefaults(){showDefaults=!showDefaults;renderDefaults();}
+function defSummary(){
+  const d=JOB.defaults; const D=Lc(d); const a={new:'New Construction',remodel:'Remodel',retro:'Retrofit'}[d.app];
+  const lum=(D.lumens.find(x=>x.c===d.lumens)||{}).l, cc=(D.cct.find(x=>x.c===d.cct)||{}).l, dm=(D.dim.find(x=>x.c===d.dim)||{}).l;
+  return [D.name,a,lum,cc,dm,(d.mType==='A'?'Adjustable':'Downlight')].filter(Boolean).join(' · ');
+}
+function renderDefaults(){
+  const host=document.getElementById('defaultsPanel'); if(!host) return; host.innerHTML='';
+  const btn=document.getElementById('defBtn'); if(btn) btn.style.background=showDefaults?'var(--accent)':'#fff', btn.style.color=showDefaults?'#fff':'';
+  if(!showDefaults) return;
+  const card=document.createElement('div'); card.className='room';
+  const head=document.createElement('div'); head.className='rhead';
+  const t=document.createElement('div'); t.style.cssText='flex:1;font-weight:600'; t.innerHTML='⚙ House defaults <span class="muted" style="font-weight:400;font-size:12px">— '+defSummary()+'</span>';
+  const done=document.createElement('button'); done.className='sm primary'; done.textContent='Done'; done.onclick=()=>{showDefaults=false;renderDefaults();};
+  head.appendChild(t); head.appendChild(done);
+  const body=document.createElement('div'); body.className='rbody';
+  const intro=document.createElement('p'); intro.className='hint'; intro.style.marginTop='0';
+  intro.textContent='The house-wide starting point. New groups inherit these. Changing them does NOT touch groups already added (override any group individually).';
+  body.appendChild(intro);
+  const cfg=document.createElement('div'); cfg.className='cfg';
+  const re=()=>{normalize(JOB.defaults);save();renderDefaults();};
+  configFields(cfg,JOB.defaults,re,true);
+  body.appendChild(cfg);
+  card.appendChild(head); card.appendChild(body); host.appendChild(card);
+}
+function seg(label,on,dis,onclick){
+  const b=document.createElement('div'); b.className='seg'+(on?' on':'')+(dis?' dis':''); b.textContent=label;
+  if(!dis) b.onclick=onclick; return b;
+}
+function field(labelTxt){const f=document.createElement('div');f.className='field';const l=document.createElement('label');l.textContent=labelTxt;f.appendChild(l);return f;}
+
+function roomEl(r){
+  const el=document.createElement('div'); el.className='room';
+  const head=document.createElement('div'); head.className='rhead';
+  const nm=document.createElement('input'); nm.placeholder='Room name (e.g. Kitchen)'; nm.value=r.name;
+  nm.oninput=()=>{r.name=nm.value;save();updateTotals();};
+  const rload=document.createElement('span'); rload.className='muted'; rload.style.cssText='font-size:11px;margin-right:6px';
+  rload.textContent=roomFixtures(r)+' fix · '+fmtW(roomWatts(r));
+  const dupr=document.createElement('button'); dupr.className='sm'; dupr.textContent='⧉ Dup'; dupr.title='Duplicate room'; dupr.onclick=()=>dupRoom(r.id);
+  const del=document.createElement('button'); del.className='sm danger'; del.textContent='Delete'; del.onclick=()=>delRoom(r.id);
+  head.appendChild(nm); head.appendChild(rload); head.appendChild(dupr); head.appendChild(del);
+  const body=document.createElement('div'); body.className='rbody';
+  body.appendChild(existingEl(r));
+  const rc=reconEl(r); if(rc) body.appendChild(rc);
+  r.groups.forEach(g=>body.appendChild(groupEl(r,g)));
+  const add=document.createElement('button'); add.className='addgroup sm ghost'; add.textContent='+ Add lighting group';
+  add.onclick=()=>addGroup(r.id); body.appendChild(add);
+  el.appendChild(head); el.appendChild(body); return el;
+}
+function mkSelect(opts,cur,cb){const s=document.createElement('select');opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if(o===cur)op.selected=true;s.appendChild(op);});s.onchange=()=>cb(s.value);return s;}
+function existingEl(r){
+  const wrap=document.createElement('div'); wrap.className='existing';
+  const hd=document.createElement('div'); hd.className='exhead';
+  const cnt=(r.existing||[]).reduce((s,x)=>s+(+x.count||0),0);
+  hd.innerHTML='<span>🔎 Existing on site (as-found)'+(cnt?(' · '+cnt+' fixtures'):'')+'</span>';
+  const add=document.createElement('button'); add.className='sm ghost'; add.textContent='+ Existing fixture'; add.onclick=()=>addExisting(r.id);
+  hd.appendChild(add); wrap.appendChild(hd);
+  if(!r.existing||!r.existing.length){
+    const e=document.createElement('div'); e.className='hint'; e.style.margin='3px 0 0';
+    e.textContent='Optional — log what’s already in the ceiling now (e.g. 6× 6" cans, 2× 4" MR16). For your reference; not part of the buy-list.';
+    wrap.appendChild(e); return wrap;
+  }
+  r.existing.forEach((x,i)=>{
+    const row=document.createElement('div'); row.className='exrow';
+    const cn=document.createElement('input'); cn.type='number'; cn.min=0; cn.value=x.count||0; cn.className='excount';
+    cn.oninput=()=>{x.count=Math.max(0,parseInt(cn.value||'0'));save();render();};
+    const ty=mkSelect(C.existType,x.type,v=>{x.type=v;save();});
+    const ap=mkSelect(C.existAper,x.aper,v=>{x.aper=v;save();}); ap.className='exap';
+    const nt=document.createElement('input'); nt.placeholder='note (condition, location, lamp type…)'; nt.value=x.note||''; nt.className='exnote';
+    nt.oninput=()=>{x.note=nt.value;save();};
+    const del=document.createElement('button'); del.className='sm danger'; del.textContent='✕'; del.onclick=()=>delExisting(r.id,i);
+    row.appendChild(cn);row.appendChild(ty);row.appendChild(ap);row.appendChild(nt);row.appendChild(del);
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+function configFields(cfg,g,re,isDefaults){
+  normalize(g);
+  const D=Lc(g); const a2=(g.line==='2'); const retro=g.app==='retro';
+
+  // Product line
+  let f=field('Product line'); let s=document.createElement('div');s.className='segs';
+  [['4','Artafex 4 · 4"'],['2','Artafex 2 · 2"']].forEach(([c,l])=>s.appendChild(seg(l,(g.line||'4')===c,false,()=>{g.line=c;re();})));
+  f.appendChild(s); cfg.appendChild(f);
+
+  // Application
+  f=field('Application');
+  const apps=[['new','New Construction'],['remodel','Remodel'],['retro','Retrofit (existing)']];
+  s=document.createElement('div');s.className='segs';
+  apps.forEach(([c,l])=>s.appendChild(seg(l,g.app===c,false,()=>{g.app=c;re();})));
+  f.appendChild(s); cfg.appendChild(f);
+
+  // Shape (always for non-retro; also for A2 retro since its trims are shape-specific)
+  if(!retro || a2){
+    f=field('Shape (housing + trim)'); s=document.createElement('div');s.className='segs';
+    [['R','Round'],['S','Square']].forEach(([c,l])=>s.appendChild(seg(l,g.shape===c,false,()=>{g.shape=c;re();})));
+    f.appendChild(s); cfg.appendChild(f);
+  }
+
+  if(!retro){
+    f=field('Housing / installation'); s=document.createElement('div');s.className='segs';
+    housingAvail(g).forEach(h=>s.appendChild(seg(h.l,g.install===h.c,false,()=>{g.install=h.c;re();})));
+    f.appendChild(s); cfg.appendChild(f);
+
+    const rts=ratingAvail(g);
+    if(rts.length>1){
+      f=field('Housing rating'); s=document.createElement('div');s.className='segs';
+      rts.forEach(rt=>s.appendChild(seg(D.ratingLabel[rt],g.rating===rt,false,()=>{g.rating=rt;re();})));
+      f.appendChild(s); cfg.appendChild(f);
+    }
+    if(!a2){
+      f=field('Existing opening'); s=document.createElement('div');s.className='segs';
+      s.appendChild(seg('New / same size',!g.from6,false,()=>{g.from6=false;re();}));
+      s.appendChild(seg('From 6" (add conversion kit)',!!g.from6,false,()=>{g.from6=true;re();}));
+      f.appendChild(s); cfg.appendChild(f);
+    }
+  } else if(a2){
+    cfg.appendChild(segField('Existing aperture',D.rAper,D.rAper,g.rAper,v=>{g.rAper=v;re();}));
+  }
+
+  cfg.appendChild(divider('Module (light engine)'));
+  f=field('Module type'); s=document.createElement('div');s.className='segs';
+  [['D','Downlight'],['A','Adjustable']].forEach(([c,l])=>s.appendChild(seg(l,g.mType===c,false,()=>{g.mType=c;re();})));
+  f.appendChild(s); cfg.appendChild(f);
+  cfg.appendChild(segField('Lumens',D.lumens,lumensAvail(g),g.lumens,v=>{g.lumens=v;re();}));
+  cfg.appendChild(cctField(g,re));
+  cfg.appendChild(segField('Beam spread',(g.mType==='A'?D.beamA:D.beamD),beamAvail(g),g.beam,v=>{g.beam=v;re();}));
+  cfg.appendChild(segField('Dimming / control',D.dim,dimAvail(g),g.dim,v=>{g.dim=v;re();}));
+  if(D.modFinish) cfg.appendChild(segField('Reflector finish',D.modFinish,D.modFinish,g.mFin||'',v=>{g.mFin=v;re();}));
+
+  if(retro && !a2){
+    cfg.appendChild(divider('Retrofit trim (existing fixture)'));
+    cfg.appendChild(segField('Existing aperture',C.rAper,C.rAper,g.rAper,v=>{g.rAper=v;re();}));
+    cfg.appendChild(segField('Trim style',C.rStyle,C.rStyle,g.rStyle,v=>{g.rStyle=v;re();}));
+    cfg.appendChild(segField('Trim finish',C.rFin,C.rFin,g.rFin,v=>{g.rFin=v;re();}));
+    cfg.appendChild(segField('Socket adapter',C.rAdapter,C.rAdapter,g.rAdapter||'',v=>{g.rAdapter=v;re();}));
+  } else {
+    cfg.appendChild(divider(retro?'Retrofit trim':'Trim'));
+    cfg.appendChild(segField('Trim style',trimStyleAvail(g),trimStyleAvail(g),g.tStyle,v=>{g.tStyle=v;re();}));
+    cfg.appendChild(segField('Trim finish',trimFinishAvail(g),trimFinishAvail(g),g.tFin,v=>{g.tFin=v;re();}));
+    cfg.appendChild(segField(a2?'Flange / micro-flange':'Flange / decorative',trimOptionAvail(g),trimOptionAvail(g),g.tOpt||'',v=>{g.tOpt=v;re();}));
+  }
+}
+
+function groupEl(r,g){
+  const el=document.createElement('div'); el.className='group';
+  // header: name + qty + delete
+  const gh=document.createElement('div'); gh.className='ghead';
+  const nm=document.createElement('input'); nm.className='gname'; nm.placeholder='Group (e.g. General, Over countertop)'; nm.value=g.name;
+  nm.oninput=()=>{g.name=nm.value;save();updateTotals();};
+  const qty=document.createElement('div'); qty.className='qty';
+  const minus=document.createElement('button'); minus.className='sm'; minus.textContent='−'; minus.onclick=()=>{g.qty=Math.max(1,(g.qty||1)-1);render();save();};
+  const qin=document.createElement('input'); qin.type='number'; qin.min=1; qin.value=g.qty||1; qin.oninput=()=>{g.qty=Math.max(1,parseInt(qin.value||'1'));save();updateTotals();};
+  const plus=document.createElement('button'); plus.className='sm'; plus.textContent='+'; plus.onclick=()=>{g.qty=(g.qty||1)+1;render();save();};
+  qty.appendChild(minus);qty.appendChild(qin);qty.appendChild(plus);
+  const dup=document.createElement('button'); dup.className='sm'; dup.textContent='⧉'; dup.title='Duplicate group'; dup.onclick=()=>dupGroup(r.id,g.id);
+  const del=document.createElement('button'); del.className='sm danger'; del.textContent='✕'; del.onclick=()=>delGroup(r.id,g.id);
+  gh.appendChild(nm); gh.appendChild(qty); gh.appendChild(dup); gh.appendChild(del);
+  el.appendChild(gh);
+
+  const cfg=document.createElement('div'); cfg.className='cfg';
+  const re=()=>{normalize(g);render();save();};
+
+  configFields(cfg,g,re,false);
+  el.appendChild(cfg);
+
+  // KIT preview
+  const kit=document.createElement('div'); kit.className='kit';
+  const h4=document.createElement('h4'); h4.textContent='Kit for this fixture'; kit.appendChild(h4);
+  const st=groupStatus(g);
+  const sb=document.createElement('div'); sb.className='status '+st.cls;
+  sb.textContent=(st.ok?'✓ ':'⚠ ')+st.label; kit.appendChild(sb);
+  const bom=document.createElement('div'); bom.className='bom';
+  groupKit(g).forEach(ln=>{
+    const d=document.createElement('div'); d.className='ln';
+    d.innerHTML='<span class="sku">'+ln.sku+'</span><span class="d">'+ln.role+(ln.auto?' · auto':'')+' — '+ln.desc+'</span>'+
+      '<span class="flag '+(ln.v?'v':'i')+'">'+(ln.v?'verified':'verify')+'</span>';
+    bom.appendChild(d);
+  });
+  kit.appendChild(bom);
+  // connected load (verified wattage)
+  const fw=fixtureWatts(g), gw=fw*(g.qty||1);
+  const load=document.createElement('div'); load.className='load';
+  load.innerHTML='Connected load: <b>'+fmtW(fw)+'</b> per fixture · <b>'+fmtW(gw)+'</b> for this group ('+(g.qty||1)+'×)';
+  kit.appendChild(load);
+  // document links (spec / install / IES) — local bundle + online fallback
+  const docs=docsFor(g); const dr=document.createElement('div'); dr.className='docs';
+  let dh='';
+  if(docs.spec) dh+='<a href="'+docs.spec.local+'" target="_blank" rel="noopener">📄 Spec sheet</a>'+(docs.specUrl?(' <a class="alt" href="'+docs.specUrl+'" target="_blank" rel="noopener">↗ online</a>'):'');
+  if(docs.install) dh+='<a href="'+docs.install+'" target="_blank" rel="noopener">🔧 Install</a>';
+  if(docs.ies) dh+='<a href="'+docs.ies+'" target="_blank" rel="noopener">📁 IES</a>';
+  dr.innerHTML=dh; kit.appendChild(dr);
+  groupNotes(g).forEach(t=>{const p=document.createElement('div');p.className='note';p.textContent='⚠ '+t;kit.appendChild(p);});
+  // site notes
+  const note=document.createElement('textarea'); note.className='gnote';
+  note.placeholder='Site notes — e.g. existing 6" MR16 cans, insulated ceiling, paint-over flange';
+  note.value=g.notes||''; note.oninput=()=>{g.notes=note.value;save();};
+  kit.appendChild(note);
+  el.appendChild(kit);
+  return el;
+}
+function divider(t){const d=document.createElement('div');d.style.cssText='font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);border-top:1px solid var(--line);padding-top:8px';d.textContent=t;return d;}
+function segField(labelTxt,all,avail,cur,cb){
+  const f=field(labelTxt); const s=document.createElement('div'); s.className='segs';
+  const availCodes=new Set(avail.map(x=>x.c));
+  all.forEach(o=>{ s.appendChild(seg(o.l,cur===o.c,!availCodes.has(o.c),()=>cb(o.c))); });
+  f.appendChild(s); return f;
+}
+function cctField(g,re){
+  const f=field('Color temperature'); const s=document.createElement('div'); s.className='segs';
+  const avail=new Set(cctAvail(g).map(x=>x.c));
+  C.cct.forEach(o=>{
+    const b=document.createElement('div'); b.className='seg'+(g.cct===o.c?' on':'')+(avail.has(o.c)?'':' dis');
+    const dot=document.createElement('span'); dot.className='swatch'; dot.style.background=o.col;
+    b.appendChild(dot); b.appendChild(document.createTextNode(o.l));
+    if(avail.has(o.c)) b.onclick=()=>{g.cct=o.c;re();};
+    s.appendChild(b);
+  });
+  f.appendChild(s);
+  const cur=C.cct.find(x=>x.c===g.cct);
+  if(cur){ const cap=document.createElement('div'); cap.className='hint'; cap.style.marginTop='5px';
+    cap.innerHTML='<span class="swatch" style="background:'+cur.col+'"></span> '+cur.desc; f.appendChild(cap); }
+  return f;
+}
+
+/* normalize: if a selection became invalid after a change, snap to first valid */
+function normalize(g){
+  if(!g.line) g.line='4';
+  const D=Lc(g);
+  if(!housingAvail(g).some(h=>h.c===g.install)) g.install=(housingAvail(g)[0]||{c:'NC'}).c;
+  const rts=ratingAvail(g); if(rts.length){ if(!rts.includes(g.rating)) g.rating=rts[0]; } else g.rating='';
+  if(!dimAvail(g).some(o=>o.c===g.dim)) g.dim=(dimAvail(g)[0]||{c:'T'}).c;
+  if(!cctAvail(g).some(o=>o.c===g.cct)) g.cct=(cctAvail(g)[0]||{c:'30'}).c;
+  if(!lumensAvail(g).some(o=>o.c===g.lumens)) g.lumens=(lumensAvail(g)[0]||{c:'10'}).c;
+  if(!beamAvail(g).some(o=>o.c===g.beam)) g.beam=(beamAvail(g)[0]||{c:'NS'}).c;
+  const ts=trimStyleAvail(g); if(!ts.some(o=>o.c===g.tStyle)) g.tStyle=(ts[0]||{c:'S'}).c;
+  const tf=trimFinishAvail(g); if(!tf.some(o=>o.c===g.tFin)) g.tFin=(tf[0]||{c:'WH'}).c;
+  const to=trimOptionAvail(g); if(!to.some(o=>o.c===(g.tOpt||''))) g.tOpt=(to[0]||{c:''}).c;
+  const ra=(D.rAper||[]); if(ra.length && !ra.some(o=>o.c===g.rAper)) g.rAper=ra[0].c;
+}
+
+/* ============================================================
+   Totals + report aggregation
+   ============================================================ */
+function eachConfiguredGroup(cb){ JOB.rooms.forEach(r=>r.groups.forEach(g=>cb(r,g))); }
+function buyList(){
+  const map={}; // sku -> {desc, qty, v}
+  eachConfiguredGroup((r,g)=>{
+    const q=g.qty||1;
+    groupKit(g).forEach(ln=>{
+      if(!map[ln.sku]) map[ln.sku]={sku:ln.sku,desc:ln.desc,role:ln.role,qty:0,v:ln.v};
+      map[ln.sku].qty+=q;
+    });
+  });
+  // job-level PhaseX gateways
+  let px=0; eachConfiguredGroup((r,g)=>{ if(g.dim==='X') px+=(g.qty||1); });
+  if(px>0){ const n=Math.ceil(px/64); map['ART-GWX']={sku:'ART-GWX',desc:'PhaseX Gateway (≤64 fixtures each)',role:'Control',qty:n,v:true}; }
+  return Object.values(map).sort((a,b)=>a.role.localeCompare(b.role)||a.sku.localeCompare(b.sku));
+}
+function updateTotals(){
+  let fix=0; eachConfiguredGroup((r,g)=>fix+=(g.qty||1));
+  document.getElementById('totFix').textContent=fix;
+  document.getElementById('totW').textContent=fmtW(jobWatts());
+  document.getElementById('totSku').textContent=buyList().length;
+  const openR=JOB.rooms.filter(r=>roomRecon(r).state==='open').length;
+  document.getElementById('reconWarn').textContent=openR?('  ⚠ '+openR+' room'+(openR>1?'s':'')+' to reconcile'):'';
+}
+
+/* ============================================================
+   Reports
+   ============================================================ */
+function syncJobMeta(){JOB.name=document.getElementById('jobName').value;JOB.addr=document.getElementById('jobAddr').value;JOB.date=document.getElementById('jobDate').value;save();}
+function openReport(){
+  syncJobMeta();
+  const bl=buyList();
+  let h='<p class="muted" style="margin:6px 0">'+(JOB.name||'(unnamed job)')+(JOB.addr?' · '+JOB.addr:'')+' · '+(JOB.date||'')+'</p>';
+  // verification summary
+  let ver=0,rev=0; eachConfiguredGroup((r,g)=>{groupStatus(g).ok?ver++:rev++;});
+  h+='<div class="status '+(rev?'i':'v')+'" style="display:inline-block">'+(rev? ('⚠ '+rev+' group(s) need review · '+ver+' verified') : ('✓ All '+ver+' groups verified compatible — OK to quote'))+'</div>';
+  const jobFix=JOB.rooms.reduce((s,r)=>s+roomFixtures(r),0);
+  h+='<p class="muted" style="margin:6px 0 0;font-size:13px">'+jobFix+' fixtures · <b>'+fmtW(jobWatts())+'</b> total connected load</p>';
+  const openR=JOB.rooms.filter(r=>roomRecon(r).state==='open');
+  if(openR.length) h+='<div class="status i" style="display:inline-block;margin-top:4px">⚠ '+openR.length+' room(s) with unreconciled existing fixtures: '+openR.map(r=>(r.name||'room')+' ('+roomRecon(r).gap+')').join(', ')+'</div>';
+  h+='<h4 style="margin:10px 0 4px">Consolidated buy-list</h4>';
+  h+='<table><tr><th>SKU</th><th>Type</th><th>Description</th><th>Qty</th><th>Conf.</th></tr>';
+  bl.forEach(x=>h+='<tr><td class="sku">'+x.sku+'</td><td>'+x.role+'</td><td class="muted">'+x.desc+'</td><td><b>'+x.qty+'</b></td><td>'+(x.v?'<span class="flag v">✓</span>':'<span class="flag i">!</span>')+'</td></tr>');
+  h+='</table>';
+  h+='<h4 style="margin:14px 0 4px">By room / group</h4>';
+  JOB.rooms.forEach(r=>{
+    h+='<div style="margin-top:8px"><b>'+(r.name||'(room)')+'</b> <span class="muted" style="font-size:12px">— '+roomFixtures(r)+' fixtures · '+fmtW(roomWatts(r))+'</span></div>';
+    if(r.existing&&r.existing.length){
+      h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">🔎 Existing: '+r.existing.map(x=>(x.count||0)+'× '+(x.aper&&x.aper!=='—'?x.aper+' ':'')+x.type+(x.note?(' ('+x.note+')'):'')).join(' · ')+'</div>';
+    }
+    if(!r.groups.length){h+='<div class="muted" style="font-size:12px">no proposed groups</div>';}
+    r.groups.forEach(g=>{
+      const st=groupStatus(g);
+      h+='<div style="margin:4px 0 2px"><span class="tag">'+(g.qty||1)+'×</span> '+(g.name||'(group)')+' <span class="muted">— '+descModule(g)+' · '+fmtW(fixtureWatts(g))+'/ea</span> <span class="flag '+st.cls+'">'+(st.ok?'✓':'review')+'</span></div>';
+      if(g.notes) h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">📝 '+g.notes+'</div>';
+      h+='<table>';
+      groupKit(g).forEach(ln=>h+='<tr><td class="sku">'+ln.sku+'</td><td class="muted">'+ln.role+'</td><td class="muted">'+ln.desc+'</td><td>'+(g.qty||1)+'</td></tr>');
+      h+='</table>';
+    });
+  });
+  document.getElementById('reportBody').innerHTML=h;
+  document.getElementById('reportModal').classList.add('show');
+}
+function closeReport(){document.getElementById('reportModal').classList.remove('show');}
+
+/* ---- JSON ---- */
+function exportJSON(){
+  syncJobMeta();
+  const data={meta:{generated:new Date().toISOString(),tool:'DMF Artafex 4 Field Configurator',schema:'dmf-a4-job-1'},
+    job:JOB, buyList:buyList()};
+  dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),(JOB.name||'dmf-job').replace(/\s+/g,'_')+'.json');
+}
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const d=JSON.parse(rd.result); const j=d.job||d;
+    if(!j || typeof j!=='object' || !Array.isArray(j.rooms)) throw new Error('not a DMF job file (no rooms)');
+    if(!j.defaults) j.defaults=baseDefaults();
+    j.name=j.name||''; j.addr=j.addr||''; j.date=j.date||new Date().toLocaleDateString();
+    j.rooms.forEach(r=>{ r.id=r.id||uid(); if(!Array.isArray(r.existing)) r.existing=[]; if(!Array.isArray(r.groups)) r.groups=[];
+      r.groups.forEach(g=>{ g.id=g.id||uid(); if(!g.line) g.line='4'; if(!g.qty) g.qty=1; }); });
+    JOB=j; save(); render();
+  }catch(err){ alert('Could not load this file — '+err.message); } };
+  rd.onerror=()=>alert('Could not read the file.');
+  rd.readAsText(file); e.target.value='';
+}
+
+/* ---- CSV fallback / Excel ---- */
+function buildRows(){
+  const jobFix=JOB.rooms.reduce((s,r)=>s+roomFixtures(r),0);
+  const rows=[['DMF Artafex 4 Take-off'],[JOB.name||'',JOB.addr||'',JOB.date||''],
+    ['Total fixtures',jobFix,'Connected load',fmtW(jobWatts())],[],
+    ['CONSOLIDATED BUY-LIST'],['SKU','Type','Description','Qty','Confidence']];
+  buyList().forEach(x=>rows.push([x.sku,x.role,x.desc,x.qty,x.v?'Verified':'Verify finish/code']));
+  const hasExisting=JOB.rooms.some(r=>(r.existing||[]).length);
+  if(hasExisting){
+    rows.push([],['EXISTING ON SITE (as-found — reference only)'],['Room','Count','Type','Aperture','Note']);
+    JOB.rooms.forEach(r=>(r.existing||[]).forEach(x=>rows.push([r.name||'',x.count||0,x.type||'',x.aper||'',x.note||''])));
+  }
+  rows.push([],['BY ROOM / GROUP'],['Room','Group','Qty','W ea','SKU','Type','Description','Site notes']);
+  JOB.rooms.forEach(r=>{
+    r.groups.forEach(g=>{
+      groupKit(g).forEach((ln,i)=>rows.push([r.name||'',g.name||'',g.qty||1,i===0?fixtureWatts(g):'',ln.sku,ln.role,ln.desc,i===0?(g.notes||''):'']));
+    });
+    rows.push([r.name||'','ROOM TOTAL',roomFixtures(r),fmtW(roomWatts(r))]);
+  });
+  return rows;
+}
+function exportExcel(){
+  syncJobMeta();
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',()=>{
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(buildRows());
+    ws['!cols']=[{wch:16},{wch:16},{wch:8},{wch:8},{wch:16},{wch:12},{wch:40},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws,'Take-off');
+    XLSX.writeFile(wb,(JOB.name||'dmf-job').replace(/\s+/g,'_')+'.xlsx');
+  },()=>{ // fallback CSV
+    const csv=buildRows().map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    dl(new Blob([csv],{type:'text/csv'}),(JOB.name||'dmf-job').replace(/\s+/g,'_')+'.csv');
+  });
+}
+
+/* ---- PDF ---- */
+function exportPDF(){
+  syncJobMeta();
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>{
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',()=>{
+      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt',format:'letter'});
+      doc.setFontSize(15);doc.text('DMF Artafex — Take-off',40,44);
+      doc.setFontSize(10);doc.setTextColor(110);
+      doc.text([(JOB.name||'(unnamed)'),(JOB.addr||''),(JOB.date||'')].filter(Boolean).join('   ·   '),40,60);
+      const jobFix=JOB.rooms.reduce((s,r)=>s+roomFixtures(r),0);
+      doc.text(jobFix+' fixtures  ·  '+fmtW(jobWatts())+' total connected load',40,72);
+      doc.setTextColor(20);
+      const bl=buyList();
+      doc.autoTable({startY:84,head:[['SKU','Type','Description','Qty','Conf.']],
+        body:bl.map(x=>[x.sku,x.role,x.desc,x.qty,x.v?'✓':'verify']),
+        styles:{fontSize:9},headStyles:{fillColor:[17,17,17]},
+        columnStyles:{0:{font:'courier',fontStyle:'bold'},3:{halign:'right'}}});
+      let y=doc.lastAutoTable.finalY+18;
+      const exRows=[]; JOB.rooms.forEach(r=>(r.existing||[]).forEach(x=>exRows.push([r.name||'',x.count||0,x.type||'',x.aper||'',x.note||''])));
+      if(exRows.length){
+        if(y>680){doc.addPage();y=44;}
+        doc.setFontSize(11);doc.text('Existing on site (as-found — reference)',40,y);y+=6;
+        doc.autoTable({startY:y,head:[['Room','Count','Type','Aperture','Note']],body:exRows,
+          styles:{fontSize:8.5},headStyles:{fillColor:[120,110,90]}});
+        y=doc.lastAutoTable.finalY+18;
+      }
+      JOB.rooms.forEach(r=>{
+        const body=[]; r.groups.forEach(g=>groupKit(g).forEach(ln=>body.push([g.name||'',g.qty||1,ln.sku,ln.role,ln.desc])));
+        if(!body.length) return;
+        if(y>700){doc.addPage();y=44;}
+        doc.setFontSize(11);doc.text((r.name||'(room)')+'  ('+roomFixtures(r)+' fix · '+fmtW(roomWatts(r))+')',40,y);y+=6;
+        doc.autoTable({startY:y,head:[['Group','Qty','SKU','Type','Description']],body,
+          styles:{fontSize:8.5},headStyles:{fillColor:[80,80,80]},columnStyles:{2:{font:'courier',fontStyle:'bold'}}});
+        y=doc.lastAutoTable.finalY+16;
+      });
+      doc.save((JOB.name||'dmf-job').replace(/\s+/g,'_')+'.pdf');
+    },pdfPrintFallback);
+  },pdfPrintFallback);
+}
+function pdfPrintFallback(){ openReport(); setTimeout(()=>window.print(),200); }
+
+/* ---- helpers ---- */
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);}
+function loadScript(src,ok,fail){
+  if(loadScript._c&&loadScript._c[src]){return ok();}
+  const s=document.createElement('script');s.src=src;
+  s.onload=()=>{(loadScript._c=loadScript._c||{})[src]=1;ok();};
+  s.onerror=()=>{(fail||(()=>alert('Could not load export library (offline?). Try JSON, or connect to the internet.')))();};
+  document.head.appendChild(s);
+}
+function resetAll(){ if(confirm('Clear the entire job? (Export first to keep a copy.)')){JOB=newJob();save();render();} }
+
+/* meta inputs */
+['jobName','jobAddr','jobDate'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{syncJobMeta();updateTotals();}));
+
+render();
+
+/* ---- PWA: installable + offline (only when served over http/https) ---- */
+function cacheOffline(){
+  if(!('serviceWorker' in navigator) || !navigator.serviceWorker.controller){
+    alert('Offline save works on the published web version (the installed app), not the local file.'); return;
+  }
+  const urls=['./','manifest.json','icon-192.png','icon-512.png','icon-180.png'];
+  ['spec','spec2'].forEach(k=>Object.values(DOCS[k]||{}).forEach(s=>{ if(s&&s.local) urls.push(s.local); }));
+  navigator.serviceWorker.controller.postMessage({type:'cacheUrls',urls});
+  alert('Saving '+urls.length+' files (app + all spec sheets) for offline use. Keep this open a few seconds on Wi-Fi.');
+}
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  navigator.serviceWorker.register('sw.js').then(()=>{
+    const b=document.getElementById('offlineBtn'); if(b) b.style.display='';
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>

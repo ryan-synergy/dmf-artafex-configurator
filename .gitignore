@@ -1,0 +1,6 @@
+node_modules/
+*.zip
+*.skill
+_skillbuild/
+.DS_Store
+zicjYcTy
