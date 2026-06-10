@@ -487,8 +487,8 @@ function loadStore(){
   if(!j.id) j.id=uid(); if(!j.updated) j.updated=new Date().toISOString();
   return {jobs:[j],currentId:j.id,sync:{owner:'',repo:'',branch:'main',token:'',shas:{},pushed:{},tombstones:{}}};
 }
-let STORE=loadStore();
-let JOB=currentJob();
+var STORE=loadStore();
+var JOB=currentJob();
 saveStore(); localStorage.removeItem(LS); // migration persisted before legacy key is dropped
 function currentJob(){
   let j=STORE.jobs.find(x=>x.id===STORE.currentId)||STORE.jobs[0];
