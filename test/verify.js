@@ -63,6 +63,30 @@ setTimeout(() => {
     ok('report escapes user HTML', !rb.querySelector('img') && !rb.querySelector('i') &&
       rb.textContent.includes('<img src=x onerror=1> Kitchen & "more"') && rb.textContent.includes('note with <i>tags</i>'));
 
+    console.log('Multi-job store:');
+    const n0 = w.STORE.jobs.length;
+    w.newJobBtn();
+    ok('new job added + becomes current', w.STORE.jobs.length === n0 + 1 && w.JOB.id === w.STORE.currentId && w.JOB.rooms.length === 0);
+    const firstId = w.STORE.jobs[0].id;
+    w.switchJob(firstId);
+    ok('switch back restores rooms', w.JOB.id === firstId && w.JOB.rooms.length === 1);
+    w.dupJob(firstId);
+    ok('duplicate creates independent copy', w.STORE.jobs.length === n0 + 2 &&
+      w.STORE.jobs[n0 + 1].rooms[0].groups[0].id !== w.JOB.rooms[0].groups[0].id);
+    w.openJobs();
+    ok('jobs modal lists all jobs', d.querySelectorAll('#jobsList .jobrow').length === n0 + 2);
+    ok('sync off by default (no fetch attempted)', !w.syncReady());
+    const persisted = JSON.parse(w.localStorage.getItem('dmf_artafex_store_v1'));
+    ok('store persists jobs', persisted && persisted.jobs.length === n0 + 2);
+
+    // legacy single-job key migrates into the multi-job store on boot
+    const legacy = { name: 'Legacy Walk', addr: '12 Main St', rooms: [{ id: 'r1', name: 'Hall', existing: [], groups: [{ id: 'g1', qty: 2, line: '4', app: 'new', shape: 'R', install: 'NC', rating: 'S', mType: 'D', lumens: '10', cct: '30', beam: 'NS', dim: 'T', tStyle: 'S', tFin: 'WH', tOpt: '' }] }] };
+    const seed = '<script>localStorage.setItem("dmf_artafex4_job_v1",' + JSON.stringify(JSON.stringify(legacy)) + ');<\/script>';
+    const dom2 = new JSDOM(html.replace('<script>', seed + '<script>'), { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://local.test/' });
+    const w2 = dom2.window;
+    ok('legacy job migrated', w2.STORE.jobs.length === 1 && w2.JOB.name === 'Legacy Walk' && w2.JOB.rooms.length === 1 && !!w2.JOB.id);
+    ok('legacy key removed after migration', w2.localStorage.getItem('dmf_artafex4_job_v1') === null);
+
     console.log('\n' + (fails ? ('FAILED: ' + fails + ' check(s)') : 'ALL PASSED'));
     process.exit(fails ? 1 : 0);
   } catch (e) {

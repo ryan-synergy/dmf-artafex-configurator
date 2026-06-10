@@ -91,6 +91,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.jobrow{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.jobrow.cur{background:#faf9f5}
+.jobrow .jinfo{flex:1;min-width:0}
 @media (max-width:430px){th,td{padding:5px 3px;font-size:12px}td.sku{font-size:11px}th{font-size:10px;letter-spacing:0}}
 td.sku{font-family:ui-monospace,Menlo,monospace;font-weight:600;white-space:nowrap}
 .muted{color:var(--mut)}
@@ -105,6 +108,7 @@ hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
     <div class="brand">
       <div><h1>Artafex · Field Spec</h1><div class="sub">DMF jobsite take-off · Artafex 2 + 4 · verified SKUs</div></div>
       <div class="btnrow" style="margin:0">
+        <button class="sm ghost" onclick="openJobs()">🗂 Jobs</button>
         <button class="sm ghost" onclick="openReport()">Reports</button>
       </div>
     </div>
@@ -119,7 +123,6 @@ hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
       <button class="ghost sm" onclick="exportJSON()">Save / Export JSON</button>
       <button class="ghost sm" onclick="document.getElementById('imp').click()">Load JSON</button>
       <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(event)"/>
-      <button class="ghost sm danger" onclick="resetAll()">Clear</button>
       <button class="ghost sm" id="offlineBtn" style="display:none" onclick="cacheOffline()">⬇ Save offline</button>
     </div>
   </header>
@@ -148,6 +151,23 @@ hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
       <button class="ghost sm" onclick="exportJSON()">JSON</button>
     </div>
     <div id="reportBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="jobsModal">
+  <div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Jobs</h3>
+      <button class="sm" onclick="closeJobs()">Close ✕</button>
+    </div>
+    <div class="btnrow">
+      <button class="primary sm" onclick="newJobBtn()">+ New job</button>
+      <button class="ghost sm" onclick="syncNow()">⇅ Sync now</button>
+      <button class="ghost sm" onclick="toggleSyncSettings()">⚙ Sync settings</button>
+    </div>
+    <div class="hint" id="syncStatus"></div>
+    <div id="syncSettings" style="display:none"></div>
+    <div id="jobsList"></div>
   </div>
 </div>
 
@@ -449,18 +469,36 @@ function groupNotes(g){
 }
 
 /* ============================================================
-   State + persistence
+   State + persistence — multi-job store
+   STORE = {jobs:[job…], currentId, sync:{owner,repo,branch,token,shas,pushed,tombstones}}
+   Legacy single-job key (dmf_artafex4_job_v1) is migrated on first load.
    ============================================================ */
-const LS='dmf_artafex4_job_v1';
+const LS='dmf_artafex4_job_v1';      // legacy single-job key (auto-migrated)
+const LSS='dmf_artafex_store_v1';    // multi-job store
 function baseDefaults(){return {line:'4',app:'new',shape:'R',install:'NC',rating:'S',from6:false,
   mType:'D',lumens:'10',cct:'30',beam:'NS',dim:'T',mFin:'',tStyle:'S',tFin:'WH',tOpt:'',
   rAper:'4',rStyle:'S',rFin:'WH',rAdapter:''};}
-let JOB = load() || newJob();
-if(!JOB.defaults) JOB.defaults=baseDefaults();
-function newJob(){return {name:'',addr:'',date:new Date().toLocaleDateString(),defaults:baseDefaults(),rooms:[]};}
+function newJob(){return {id:uid(),name:'',addr:'',date:new Date().toLocaleDateString(),defaults:baseDefaults(),rooms:[],updated:new Date().toISOString()};}
 function uid(){return Math.random().toString(36).slice(2,9);}
-function save(){localStorage.setItem(LS,JSON.stringify(JOB));}
-function load(){try{return JSON.parse(localStorage.getItem(LS));}catch(e){return null;}}
+function loadStore(){
+  try{const s=JSON.parse(localStorage.getItem(LSS)); if(s&&Array.isArray(s.jobs)) return s;}catch(e){}
+  let legacy=null; try{legacy=JSON.parse(localStorage.getItem(LS));}catch(e){}
+  const j=(legacy&&Array.isArray(legacy.rooms))?legacy:newJob();
+  if(!j.id) j.id=uid(); if(!j.updated) j.updated=new Date().toISOString();
+  return {jobs:[j],currentId:j.id,sync:{owner:'',repo:'',branch:'main',token:'',shas:{},pushed:{},tombstones:{}}};
+}
+let STORE=loadStore();
+let JOB=currentJob();
+saveStore(); localStorage.removeItem(LS); // migration persisted before legacy key is dropped
+function currentJob(){
+  let j=STORE.jobs.find(x=>x.id===STORE.currentId)||STORE.jobs[0];
+  if(!j){j=newJob();STORE.jobs.push(j);}
+  STORE.currentId=j.id;
+  if(!j.defaults) j.defaults=baseDefaults();
+  return j;
+}
+function saveStore(){localStorage.setItem(LSS,JSON.stringify(STORE));}
+function save(){JOB.updated=new Date().toISOString();saveStore();queuePush();}
 
 function addRoom(){JOB.rooms.push({id:uid(),name:'',existing:[],groups:[]});render();save();}
 function addExisting(rid){const r=JOB.rooms.find(x=>x.id===rid);(r.existing=r.existing||[]).push({type:C.existType[0],aper:'6"',count:1,note:''});render();save();}
@@ -794,7 +832,10 @@ function updateTotals(){
 /* ============================================================
    Reports
    ============================================================ */
-function syncJobMeta(){JOB.name=document.getElementById('jobName').value;JOB.addr=document.getElementById('jobAddr').value;JOB.date=document.getElementById('jobDate').value;save();}
+function syncJobMeta(){
+  const n=document.getElementById('jobName').value,a=document.getElementById('jobAddr').value,d=document.getElementById('jobDate').value;
+  if(n!==JOB.name||a!==JOB.addr||d!==JOB.date){JOB.name=n;JOB.addr=a;JOB.date=d;save();}
+}
 /* escape user-entered text before it goes into report innerHTML */
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function openReport(){
@@ -833,6 +874,142 @@ function openReport(){
 }
 function closeReport(){document.getElementById('reportModal').classList.remove('show');}
 
+/* ============================================================
+   Jobs — multi-job list + optional GitHub sync
+   Sync model: local-first. Every change saves to localStorage
+   immediately; when a private GitHub repo + token are configured,
+   each job is pushed as jobs/<id>.json (debounced) and pulled on
+   open / Sync now. Last write (by job.updated) wins.
+   ============================================================ */
+function openJobs(){syncJobMeta();renderJobs();renderSyncSettings();
+  setSyncStatus(syncReady()?'':'Sync is off — jobs are stored on this device only. ⚙ Sync settings to enable.');
+  document.getElementById('jobsModal').classList.add('show');
+  if(syncReady()&&navigator.onLine) syncNow(true);}
+function closeJobs(){document.getElementById('jobsModal').classList.remove('show');}
+function jobFixCount(j){return (j.rooms||[]).reduce((s,r)=>s+(r.groups||[]).reduce((q,g)=>q+(g.qty||1),0),0);}
+function renderJobs(){
+  const host=document.getElementById('jobsList'); host.innerHTML='';
+  const jobs=[...STORE.jobs].sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
+  jobs.forEach(j=>{
+    const cur=j.id===STORE.currentId;
+    const row=document.createElement('div'); row.className='jobrow'+(cur?' cur':'');
+    const info=document.createElement('div'); info.className='jinfo';
+    const t=document.createElement('div'); t.style.fontWeight='600'; t.textContent=(j.name||'(unnamed job)')+(cur?' — current':'');
+    const m=document.createElement('div'); m.className='muted'; m.style.fontSize='12px';
+    m.textContent=[(j.addr||''),(j.rooms||[]).length+' rooms · '+jobFixCount(j)+' fixtures',
+      j.updated?('updated '+new Date(j.updated).toLocaleDateString()):''].filter(Boolean).join(' · ');
+    info.appendChild(t); info.appendChild(m);
+    const open=document.createElement('button'); open.className='sm'+(cur?'':' primary');
+    open.textContent=cur?'✓ Open':'Open'; open.disabled=cur; open.onclick=()=>switchJob(j.id);
+    const dup=document.createElement('button'); dup.className='sm'; dup.textContent='⧉'; dup.title='Duplicate job'; dup.onclick=()=>dupJob(j.id);
+    const del=document.createElement('button'); del.className='sm danger'; del.textContent='✕'; del.onclick=()=>deleteJob(j.id);
+    row.appendChild(info); row.appendChild(open); row.appendChild(dup); row.appendChild(del);
+    host.appendChild(row);
+  });
+}
+function switchJob(id){STORE.currentId=id;JOB=currentJob();saveStore();render();renderJobs();}
+function newJobBtn(){const j=newJob();STORE.jobs.push(j);STORE.currentId=j.id;JOB=j;saveStore();render();renderJobs();closeJobs();}
+function dupJob(id){const src=STORE.jobs.find(x=>x.id===id); if(!src) return;
+  const c=JSON.parse(JSON.stringify(src)); c.id=uid(); c.name=(c.name||'Job')+' (copy)'; c.updated=new Date().toISOString();
+  (c.rooms||[]).forEach(r=>{r.id=uid();(r.groups||[]).forEach(g=>g.id=uid());});
+  STORE.jobs.push(c); saveStore(); renderJobs();}
+function deleteJob(id){
+  const j=STORE.jobs.find(x=>x.id===id); if(!j) return;
+  const msg='Delete "'+(j.name||'(unnamed job)')+'" ('+(j.rooms||[]).length+' room(s), '+jobFixCount(j)+' fixtures)'+
+    (syncReady()?' from this device AND from GitHub sync?':' from this device? (Export JSON first to keep a copy.)');
+  if(!confirm(msg)) return;
+  STORE.jobs=STORE.jobs.filter(x=>x.id!==id);
+  const s=syncCfg(); delete s.shas[id]; delete s.pushed[id];
+  if(syncReady()){ s.tombstones[id]=true; deleteRemote(id).catch(()=>{}); }
+  if(STORE.currentId===id){ JOB=currentJob(); render(); }
+  saveStore(); renderJobs();
+}
+
+/* ---- GitHub sync (private repo via Contents API) ---- */
+function syncCfg(){ if(!STORE.sync) STORE.sync={owner:'',repo:'',branch:'main',token:''};
+  const s=STORE.sync; s.shas=s.shas||{}; s.pushed=s.pushed||{}; s.tombstones=s.tombstones||{}; return s; }
+function syncReady(){const s=syncCfg(); return !!(s.owner&&s.repo&&s.token);}
+function setSyncStatus(t,bad){const el=document.getElementById('syncStatus'); if(el){el.textContent=t; el.style.color=bad?'var(--bad)':'';}}
+function b64e(str){const b=new TextEncoder().encode(str); let s=''; for(let i=0;i<b.length;i+=8192) s+=String.fromCharCode.apply(null,b.subarray(i,i+8192)); return btoa(s);}
+function b64d(b64){const s=atob(String(b64).replace(/\s/g,'')); const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++) b[i]=s.charCodeAt(i); return new TextDecoder().decode(b);}
+function gh(path,opts){const s=syncCfg();
+  return fetch('https://api.github.com/repos/'+s.owner+'/'+s.repo+'/'+path,
+    Object.assign({headers:{'Authorization':'Bearer '+s.token,'Accept':'application/vnd.github+json'}},opts||{}));}
+async function pushJob(j){
+  const s=syncCfg(); const br=s.branch||'main'; const path='contents/jobs/'+j.id+'.json';
+  const mk=()=>JSON.stringify({message:(j.name||j.id)+' — '+(j.rooms||[]).length+' room(s)',branch:br,content:b64e(JSON.stringify(j)),sha:s.shas[j.id]||undefined});
+  let res=await gh(path,{method:'PUT',body:mk()});
+  if(res.status===409||res.status===422){ // sha out of date — refetch and retry once (last write wins)
+    const cur=await gh(path+'?ref='+br);
+    if(cur.ok) s.shas[j.id]=(await cur.json()).sha; else delete s.shas[j.id];
+    res=await gh(path,{method:'PUT',body:mk()});
+  }
+  if(!res.ok) throw new Error('GitHub error '+res.status);
+  const d=await res.json(); s.shas[j.id]=d.content.sha; s.pushed[j.id]=j.updated; saveStore();
+}
+async function deleteRemote(id,sha){
+  const s=syncCfg(); const br=s.branch||'main'; const path='contents/jobs/'+id+'.json';
+  if(!sha){ const r=await gh(path+'?ref='+br);
+    if(r.status===404){ delete s.tombstones[id]; saveStore(); return; }
+    if(!r.ok) throw new Error('GitHub error '+r.status); sha=(await r.json()).sha; }
+  const res=await gh(path,{method:'DELETE',body:JSON.stringify({message:'Delete job '+id,sha:sha,branch:br})});
+  if(res.ok||res.status===404){ delete s.tombstones[id]; delete s.shas[id]; delete s.pushed[id]; saveStore(); }
+  else throw new Error('GitHub error '+res.status);
+}
+let pushTimer=null;
+function queuePush(){ if(!syncReady()||!navigator.onLine) return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(async()=>{ try{ await pushJob(JOB); setSyncStatus('✓ Synced '+new Date().toLocaleTimeString()); }
+    catch(e){ setSyncStatus('Not synced yet — '+e.message+'. Will retry on next change or Sync now.',true); } },2500);
+}
+async function syncNow(quiet){
+  if(!syncReady()){ if(quiet!==true){ toggleSyncSettings(true); setSyncStatus('Enter your GitHub repo + token below to enable cross-device sync.'); } return; }
+  const s=syncCfg(); const br=s.branch||'main';
+  setSyncStatus('Syncing…');
+  try{
+    const res=await gh('contents/jobs?ref='+br);
+    let remote=[]; if(res.ok) remote=await res.json(); else if(res.status!==404) throw new Error('GitHub error '+res.status+(res.status===401?' — check the token':''));
+    const files=(Array.isArray(remote)?remote:[]).filter(f=>f.name&&f.name.endsWith('.json'));
+    for(const f of files){
+      const id=f.name.replace(/\.json$/,'');
+      if(s.tombstones[id]){ try{ await deleteRemote(id,f.sha); }catch(e){} continue; }
+      const local=STORE.jobs.find(x=>x.id===id);
+      if(local && s.shas[id]===f.sha) continue;          // unchanged remotely
+      const fr=await gh('contents/jobs/'+f.name+'?ref='+br); if(!fr.ok) continue;
+      const fd=await fr.json(); let rj=null; try{ rj=JSON.parse(b64d(fd.content)); }catch(e){ continue; }
+      if(!rj||!Array.isArray(rj.rooms)) continue;
+      rj.id=id;
+      if(!local){ STORE.jobs.push(rj); s.shas[id]=f.sha; s.pushed[id]=rj.updated; }
+      else if((rj.updated||'')>(local.updated||'')){      // remote newer → take it
+        Object.keys(local).forEach(k=>delete local[k]); Object.assign(local,rj);
+        s.shas[id]=f.sha; s.pushed[id]=rj.updated;
+      } else { s.shas[id]=f.sha; }                        // local newer → pushed below
+    }
+    for(const j of STORE.jobs){ if(s.pushed[j.id]!==j.updated) await pushJob(j); }
+    JOB=currentJob(); saveStore(); render(); renderJobs();
+    setSyncStatus('✓ Synced — '+STORE.jobs.length+' job(s) · '+new Date().toLocaleTimeString());
+  }catch(e){ setSyncStatus((navigator.onLine?'Sync failed: ':'Offline — your work is saved on this device and will sync later. ')+e.message,true); }
+}
+window.addEventListener('online',()=>{ if(syncReady()) syncNow(true); });
+let showSync=false;
+function toggleSyncSettings(force){ showSync=(force===true)?true:!showSync; renderSyncSettings(); }
+function renderSyncSettings(){
+  const host=document.getElementById('syncSettings'); if(!host) return;
+  host.style.display=showSync?'':'none'; host.innerHTML=''; if(!showSync) return;
+  const s=syncCfg();
+  const p=document.createElement('p'); p.className='hint'; p.style.marginTop='8px';
+  p.innerHTML='Jobs sync through a <b>private</b> GitHub repo you own (e.g. <b>dmf-jobs</b>). Create a fine-grained personal access token limited to that one repo with <b>Contents: Read and write</b>, and enter the same settings on each device. Job data contains customer info — never use a public repo.';
+  host.appendChild(p);
+  const mk=(ph,key,type)=>{const i=document.createElement('input'); i.placeholder=ph; i.value=s[key]||''; if(type) i.type=type;
+    i.autocapitalize='none'; i.autocorrect='off'; i.spellcheck=false;
+    i.style.cssText='width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;margin-top:6px';
+    i.oninput=()=>{s[key]=i.value.trim();saveStore();}; return i;};
+  host.appendChild(mk('GitHub username (owner)','owner'));
+  host.appendChild(mk('Repository name (e.g. dmf-jobs)','repo'));
+  host.appendChild(mk('Branch (default: main)','branch'));
+  host.appendChild(mk('Fine-grained personal access token','token','password'));
+}
+
 /* ---- JSON ---- */
 function exportJSON(){
   syncJobMeta();
@@ -846,12 +1023,18 @@ function importJSON(e){
   rd.onload=()=>{ try{
     const d=JSON.parse(rd.result); const j=d.job||d;
     if(!j || typeof j!=='object' || !Array.isArray(j.rooms)) throw new Error('not a DMF job file (no rooms)');
-    if(JOB.rooms.length && !confirm('Replace the current job ('+(JOB.name||'unnamed')+', '+JOB.rooms.length+' room(s)) with "'+(j.name||file.name)+'"? Export the current job first if you want to keep it.')) return;
     if(!j.defaults) j.defaults=baseDefaults();
     j.name=j.name||''; j.addr=j.addr||''; j.date=j.date||new Date().toLocaleDateString();
     j.rooms.forEach(r=>{ r.id=r.id||uid(); if(!Array.isArray(r.existing)) r.existing=[]; if(!Array.isArray(r.groups)) r.groups=[];
       r.groups.forEach(g=>{ g.id=g.id||uid(); if(!g.line) g.line='4'; if(!g.qty) g.qty=1; }); });
-    JOB=j; save(); render();
+    // import into the job list — never destroys other jobs
+    const exists=j.id && STORE.jobs.find(x=>x.id===j.id);
+    if(exists){
+      if(confirm('A job with this id is already on this device ("'+(exists.name||'(unnamed)')+'"). Replace it with the file? (Cancel imports the file as a separate copy.)')){
+        Object.keys(exists).forEach(k=>delete exists[k]); Object.assign(exists,j); STORE.currentId=exists.id;
+      } else { j.id=uid(); j.name=(j.name||'Job')+' (import)'; STORE.jobs.push(j); STORE.currentId=j.id; }
+    } else { j.id=j.id||uid(); STORE.jobs.push(j); STORE.currentId=j.id; }
+    JOB=currentJob(); save(); render();
   }catch(err){ alert('Could not load this file — '+err.message); } };
   rd.onerror=()=>alert('Could not read the file.');
   rd.readAsText(file); e.target.value='';
@@ -942,8 +1125,6 @@ function loadScript(src,ok,fail){
   s.onerror=()=>{(fail||(()=>alert('Could not load export library (offline?). Try JSON, or connect to the internet.')))();};
   document.head.appendChild(s);
 }
-function resetAll(){ if(confirm('Clear the entire job? (Export first to keep a copy.)')){JOB=newJob();save();render();} }
-
 /* meta inputs */
 ['jobName','jobAddr','jobDate'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{syncJobMeta();updateTotals();}));
 
@@ -954,7 +1135,11 @@ function cacheOffline(){
   if(!('serviceWorker' in navigator) || !navigator.serviceWorker.controller){
     alert('Offline save works on the published web version (the installed app), not the local file.'); return;
   }
-  const urls=['./','manifest.json','icon-192.png','icon-512.png','icon-180.png'];
+  const urls=['./','manifest.json','icon-192.png','icon-512.png','icon-180.png',
+    // export libraries, so Excel/PDF work fully offline in the field
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'];
   ['spec','spec2'].forEach(k=>Object.values(DOCS[k]||{}).forEach(s=>{ if(s&&s.local) urls.push(s.local); }));
   navigator.serviceWorker.controller.postMessage({type:'cacheUrls',urls});
   alert('Saving '+urls.length+' files (app + all spec sheets) for offline use. Keep this open a few seconds on Wi-Fi.');

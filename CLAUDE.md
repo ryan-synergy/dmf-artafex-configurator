@@ -19,8 +19,9 @@ specs/                                  ← bundled spec-sheet PDFs (referenced 
 reference/
   Artafex4_Verified_SKU_Reference.md    ← A4 grammar, rules, wattage, doc URLs
   Artafex2_Verified_SKU_Reference.md    ← A2 grammar, rules, doc URLs
-test/verify.js                          ← regression tests (SKU assembly + DOM smoke)
-manifest.json / sw.js / icon-*.png      ← live inside the deploy zip (PWA); see "Publishing"
+test/verify.js                          ← regression tests (SKU assembly + DOM smoke + store/sync)
+manifest.json / sw.js / icon-*.png      ← PWA shell (deployed by the workflow; sw cache name must be bumped when the shell changes)
+.github/workflows/deploy.yml            ← CI: npm test gate → GitHub Pages deploy (copies app to index.html)
 package.json                            ← `npm test`, `npm run serve`
 ```
 
@@ -32,7 +33,9 @@ The app is **deliberately one file** (easy to host, email, drop on a phone). Don
 - **SKU builders:** `skuHousing` / `skuModule` / `skuTrim` branch on `g.line`. `groupKit(g)` assembles the per-fixture BOM (line-aware accessories, retrofit, auto mud-kit).
 - **Availability:** `housingAvail`, `lumensAvail`, `cctAvail`, `beamAvail`, `dimAvail`, `trimStyleAvail`, `trimFinishAvail`, `trimOptionAvail` all read `Lc(g)`. `normalize(g)` snaps invalid selections valid; called at the top of `configFields`.
 - **UI:** `configFields(cfg,g,re)` renders the guided chip taps with a Product-line selector first. `cctField` shows color swatches.
-- **Data model:** Jobsite → rooms → groups (qty). `JOB.defaults` (House Defaults, inherited by new groups, cascade = new only). `room.existing` (as-found survey, reference-only). `roomRecon` (existing-vs-proposed nudge). Reports in `openReport` / `buildRows` / `exportPDF` (confidence flags + connected-load). `docsFor(g)` → spec/install/IES, local bundle + hosted fallback. Persistence via `localStorage` (key `dmf_artafex4_job_v1`); `importJSON` backfills missing fields.
+- **Data model:** Jobsite → rooms → groups (qty). `JOB.defaults` (House Defaults, inherited by new groups, cascade = new only). `room.existing` (as-found survey, reference-only). `roomRecon` (existing-vs-proposed nudge). Reports in `openReport` / `buildRows` / `exportPDF` (confidence flags + connected-load; user text goes through `esc()` before innerHTML). `docsFor(g)` → spec/install/IES, local bundle + hosted fallback.
+- **Persistence (multi-job):** `STORE = {jobs:[], currentId, sync:{owner,repo,branch,token,shas,pushed,tombstones}}` at key `dmf_artafex_store_v1`; legacy key `dmf_artafex4_job_v1` is auto-migrated on boot. `save()` = bump `JOB.updated` + `saveStore()` + `queuePush()`. Jobs modal: `openJobs`/`renderJobs`/`switchJob`/`dupJob`/`deleteJob`. `importJSON` adds to the list (non-destructive), backfills missing fields.
+- **GitHub sync (optional, local-first):** each job is `jobs/<id>.json` in a **private** repo the user owns, via the Contents API with a fine-grained PAT (Contents R/W on that repo only). `pushJob` (sha-tracked, 409 retry = last-write-wins by `job.updated`), `syncNow` (pull list → pull changed → push dirty), `queuePush` (2.5 s debounce after `save()`), tombstones so deletions don't resurrect. Everything must keep working with sync unconfigured/offline.
 
 ## SKU grammar (verified — see reference/ for full tables)
 
@@ -61,19 +64,21 @@ npm test         # SKU assembly + DOM smoke; exits non-zero on any failure
 
 ## Publishing / PWA
 
-- It's a static site. The deploy bundle (`index.html` = the app, + `manifest.json`, `sw.js`, `icon-*.png`, `specs/`) is produced as `dmf-artafex-webapp.zip` and drag-dropped onto a static host (Tiiny Host / dplooy / Linkyhost).
+- **GitHub Pages via Actions**: pushing to `master`/`main` runs `npm test`, then `.github/workflows/deploy.yml` assembles the site (`DMF_Artafex4_Field_Configurator.html` → `index.html`, + manifest/sw/icons/specs) and deploys to Pages. `git push` IS the deploy — never push red.
+- The app repo is **public** (Pages free tier). Job data lives in a separate **private** repo (`dmf-jobs`) written by the app at runtime — never commit job data or tokens here.
 - **Service workers need http(s)** — test the installable/offline behavior with `npm run serve` (`python3 -m http.server 8080`) and open `http://localhost:8080`, not the `file://` path.
-- In-app **⬇ Save offline** button caches the app + all spec sheets (only active when served over http).
+- In-app **⬇ Save offline** caches the app + all spec sheets + the xlsx/jsPDF CDN libs (active when served over http). When the PWA shell files change, bump `CACHE` in `sw.js`.
+- `dmf-artafex-webapp.zip` (gitignored) is the legacy drag-drop bundle; rebuild it only if a drag-drop host is still needed.
 
 ## Known next steps / backlog
 
-- **Cross-device sync** (the big one): jobs live in `localStorage` per device today; export/import JSON is the manual bridge. A real sync needs a small backend (server + DB + auth) — greenfield.
 - More product lines: Artafex 1, Cylinders, Surface Mount.
-- A "lite" web build (HTML only, spec sheets via online links) for hosts with small free tiers.
 - Client-ready quote header (customer / prepared-by / dealer) on reports.
+- Quoting-software export: ask what format their quoting tool ingests (CSV columns?) and add a dedicated export.
+- Sync edge: deleting a job on device A while device B still holds a local copy can resurrect it from B (acceptable v1 trade-off; fix = real tombstone file in the repo).
 
 ## Gotchas
 
-- `localStorage` is per-device/origin — not synced.
 - The app needs `specs/` alongside it for the offline 📄 buttons; online ↗ links work regardless.
+- The sync token is stored in `localStorage` per device; it must be a fine-grained PAT scoped to the one private jobs repo, Contents R/W only.
 - There's a companion **skill** (`dmf-artafex-configurator.skill`) that encodes this same playbook; it works in Claude Code too.
