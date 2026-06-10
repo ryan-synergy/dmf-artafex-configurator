@@ -55,6 +55,13 @@ setTimeout(() => {
     ok('line switch -> A2 (X2 + ART2)', d.getElementById('rooms').innerHTML.includes('X2NCR') && d.getElementById('rooms').innerHTML.includes('ART2'));
     let crashed = false; try { w.openReport(); } catch (e) { crashed = true; }
     ok('report opens without error', !crashed && d.getElementById('reportBody').innerHTML.includes('buy-list'));
+    // user-entered text must be escaped in the report (names/notes go into innerHTML)
+    w.JOB.rooms[0].name = '<img src=x onerror=1> Kitchen & "more"';
+    w.JOB.rooms[0].groups[0].notes = 'note with <i>tags</i>';
+    w.openReport();
+    const rb = d.getElementById('reportBody');
+    ok('report escapes user HTML', !rb.querySelector('img') && !rb.querySelector('i') &&
+      rb.textContent.includes('<img src=x onerror=1> Kitchen & "more"') && rb.textContent.includes('note with <i>tags</i>'));
 
     console.log('\n' + (fails ? ('FAILED: ' + fails + ' check(s)') : 'ALL PASSED'));
     process.exit(fails ? 1 : 0);

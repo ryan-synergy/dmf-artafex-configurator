@@ -90,6 +90,8 @@ select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;bac
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:430px){th,td{padding:5px 3px;font-size:12px}td.sku{font-size:11px}th{font-size:10px;letter-spacing:0}}
 td.sku{font-family:ui-monospace,Menlo,monospace;font-weight:600;white-space:nowrap}
 .muted{color:var(--mut)}
 .tag{display:inline-block;background:var(--chip);border-radius:6px;padding:1px 6px;font-size:11px;margin-right:4px}
@@ -566,8 +568,10 @@ function mkSelect(opts,cur,cb){const s=document.createElement('select');opts.for
 function existingEl(r){
   const wrap=document.createElement('div'); wrap.className='existing';
   const hd=document.createElement('div'); hd.className='exhead';
-  const cnt=(r.existing||[]).reduce((s,x)=>s+(+x.count||0),0);
-  hd.innerHTML='<span>🔎 Existing on site (as-found)'+(cnt?(' · '+cnt+' fixtures'):'')+'</span>';
+  const ttl=document.createElement('span'); ttl.textContent='🔎 Existing on site (as-found)';
+  const cntSpan=document.createElement('span'); ttl.appendChild(cntSpan); hd.appendChild(ttl);
+  const refreshCnt=()=>{const c=existingCount(r); cntSpan.textContent=c?(' · '+c+' fixtures'):'';};
+  refreshCnt();
   const add=document.createElement('button'); add.className='sm ghost'; add.textContent='+ Existing fixture'; add.onclick=()=>addExisting(r.id);
   hd.appendChild(add); wrap.appendChild(hd);
   if(!r.existing||!r.existing.length){
@@ -578,7 +582,8 @@ function existingEl(r){
   r.existing.forEach((x,i)=>{
     const row=document.createElement('div'); row.className='exrow';
     const cn=document.createElement('input'); cn.type='number'; cn.min=0; cn.value=x.count||0; cn.className='excount';
-    cn.oninput=()=>{x.count=Math.max(0,parseInt(cn.value||'0'));save();render();};
+    cn.oninput=()=>{x.count=Math.max(0,parseInt(cn.value||'0'));save();refreshCnt();updateTotals();};
+    cn.onchange=()=>render(); // full refresh (recon banner) once typing is done
     const ty=mkSelect(C.existType,x.type,v=>{x.type=v;save();});
     const ap=mkSelect(C.existAper,x.aper,v=>{x.aper=v;save();}); ap.className='exap';
     const nt=document.createElement('input'); nt.placeholder='note (condition, location, lamp type…)'; nt.value=x.note||''; nt.className='exnote';
@@ -666,7 +671,10 @@ function groupEl(r,g){
   nm.oninput=()=>{g.name=nm.value;save();updateTotals();};
   const qty=document.createElement('div'); qty.className='qty';
   const minus=document.createElement('button'); minus.className='sm'; minus.textContent='−'; minus.onclick=()=>{g.qty=Math.max(1,(g.qty||1)-1);render();save();};
-  const qin=document.createElement('input'); qin.type='number'; qin.min=1; qin.value=g.qty||1; qin.oninput=()=>{g.qty=Math.max(1,parseInt(qin.value||'1'));save();updateTotals();};
+  let refreshLoad=()=>{}; // bound to the kit's load line below
+  const qin=document.createElement('input'); qin.type='number'; qin.min=1; qin.value=g.qty||1;
+  qin.oninput=()=>{g.qty=Math.max(1,parseInt(qin.value||'1'));save();updateTotals();refreshLoad();};
+  qin.onchange=()=>render(); // full refresh (room header, recon) once typing is done
   const plus=document.createElement('button'); plus.className='sm'; plus.textContent='+'; plus.onclick=()=>{g.qty=(g.qty||1)+1;render();save();};
   qty.appendChild(minus);qty.appendChild(qin);qty.appendChild(plus);
   const dup=document.createElement('button'); dup.className='sm'; dup.textContent='⧉'; dup.title='Duplicate group'; dup.onclick=()=>dupGroup(r.id,g.id);
@@ -695,9 +703,10 @@ function groupEl(r,g){
   });
   kit.appendChild(bom);
   // connected load (verified wattage)
-  const fw=fixtureWatts(g), gw=fw*(g.qty||1);
   const load=document.createElement('div'); load.className='load';
-  load.innerHTML='Connected load: <b>'+fmtW(fw)+'</b> per fixture · <b>'+fmtW(gw)+'</b> for this group ('+(g.qty||1)+'×)';
+  refreshLoad=()=>{const fw=fixtureWatts(g), gw=fw*(g.qty||1);
+    load.innerHTML='Connected load: <b>'+fmtW(fw)+'</b> per fixture · <b>'+fmtW(gw)+'</b> for this group ('+(g.qty||1)+'×)';};
+  refreshLoad();
   kit.appendChild(load);
   // document links (spec / install / IES) — local bundle + online fallback
   const docs=docsFor(g); const dr=document.createElement('div'); dr.className='docs';
@@ -786,35 +795,37 @@ function updateTotals(){
    Reports
    ============================================================ */
 function syncJobMeta(){JOB.name=document.getElementById('jobName').value;JOB.addr=document.getElementById('jobAddr').value;JOB.date=document.getElementById('jobDate').value;save();}
+/* escape user-entered text before it goes into report innerHTML */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function openReport(){
   syncJobMeta();
   const bl=buyList();
-  let h='<p class="muted" style="margin:6px 0">'+(JOB.name||'(unnamed job)')+(JOB.addr?' · '+JOB.addr:'')+' · '+(JOB.date||'')+'</p>';
+  let h='<p class="muted" style="margin:6px 0">'+esc(JOB.name||'(unnamed job)')+(JOB.addr?' · '+esc(JOB.addr):'')+' · '+esc(JOB.date||'')+'</p>';
   // verification summary
   let ver=0,rev=0; eachConfiguredGroup((r,g)=>{groupStatus(g).ok?ver++:rev++;});
   h+='<div class="status '+(rev?'i':'v')+'" style="display:inline-block">'+(rev? ('⚠ '+rev+' group(s) need review · '+ver+' verified') : ('✓ All '+ver+' groups verified compatible — OK to quote'))+'</div>';
   const jobFix=JOB.rooms.reduce((s,r)=>s+roomFixtures(r),0);
   h+='<p class="muted" style="margin:6px 0 0;font-size:13px">'+jobFix+' fixtures · <b>'+fmtW(jobWatts())+'</b> total connected load</p>';
   const openR=JOB.rooms.filter(r=>roomRecon(r).state==='open');
-  if(openR.length) h+='<div class="status i" style="display:inline-block;margin-top:4px">⚠ '+openR.length+' room(s) with unreconciled existing fixtures: '+openR.map(r=>(r.name||'room')+' ('+roomRecon(r).gap+')').join(', ')+'</div>';
+  if(openR.length) h+='<div class="status i" style="display:inline-block;margin-top:4px">⚠ '+openR.length+' room(s) with unreconciled existing fixtures: '+openR.map(r=>esc(r.name||'room')+' ('+roomRecon(r).gap+')').join(', ')+'</div>';
   h+='<h4 style="margin:10px 0 4px">Consolidated buy-list</h4>';
-  h+='<table><tr><th>SKU</th><th>Type</th><th>Description</th><th>Qty</th><th>Conf.</th></tr>';
+  h+='<div class="tw"><table><tr><th>SKU</th><th>Type</th><th>Description</th><th>Qty</th><th>Conf.</th></tr>';
   bl.forEach(x=>h+='<tr><td class="sku">'+x.sku+'</td><td>'+x.role+'</td><td class="muted">'+x.desc+'</td><td><b>'+x.qty+'</b></td><td>'+(x.v?'<span class="flag v">✓</span>':'<span class="flag i">!</span>')+'</td></tr>');
-  h+='</table>';
+  h+='</table></div>';
   h+='<h4 style="margin:14px 0 4px">By room / group</h4>';
   JOB.rooms.forEach(r=>{
-    h+='<div style="margin-top:8px"><b>'+(r.name||'(room)')+'</b> <span class="muted" style="font-size:12px">— '+roomFixtures(r)+' fixtures · '+fmtW(roomWatts(r))+'</span></div>';
+    h+='<div style="margin-top:8px"><b>'+esc(r.name||'(room)')+'</b> <span class="muted" style="font-size:12px">— '+roomFixtures(r)+' fixtures · '+fmtW(roomWatts(r))+'</span></div>';
     if(r.existing&&r.existing.length){
-      h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">🔎 Existing: '+r.existing.map(x=>(x.count||0)+'× '+(x.aper&&x.aper!=='—'?x.aper+' ':'')+x.type+(x.note?(' ('+x.note+')'):'')).join(' · ')+'</div>';
+      h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">🔎 Existing: '+r.existing.map(x=>(x.count||0)+'× '+(x.aper&&x.aper!=='—'?esc(x.aper)+' ':'')+esc(x.type)+(x.note?(' ('+esc(x.note)+')'):'')).join(' · ')+'</div>';
     }
     if(!r.groups.length){h+='<div class="muted" style="font-size:12px">no proposed groups</div>';}
     r.groups.forEach(g=>{
       const st=groupStatus(g);
-      h+='<div style="margin:4px 0 2px"><span class="tag">'+(g.qty||1)+'×</span> '+(g.name||'(group)')+' <span class="muted">— '+descModule(g)+' · '+fmtW(fixtureWatts(g))+'/ea</span> <span class="flag '+st.cls+'">'+(st.ok?'✓':'review')+'</span></div>';
-      if(g.notes) h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">📝 '+g.notes+'</div>';
-      h+='<table>';
+      h+='<div style="margin:4px 0 2px"><span class="tag">'+(g.qty||1)+'×</span> '+esc(g.name||'(group)')+' <span class="muted">— '+descModule(g)+' · '+fmtW(fixtureWatts(g))+'/ea</span> <span class="flag '+st.cls+'">'+(st.ok?'✓':'review')+'</span></div>';
+      if(g.notes) h+='<div class="muted" style="font-size:12px;margin:2px 0 2px 6px">📝 '+esc(g.notes)+'</div>';
+      h+='<div class="tw"><table>';
       groupKit(g).forEach(ln=>h+='<tr><td class="sku">'+ln.sku+'</td><td class="muted">'+ln.role+'</td><td class="muted">'+ln.desc+'</td><td>'+(g.qty||1)+'</td></tr>');
-      h+='</table>';
+      h+='</table></div>';
     });
   });
   document.getElementById('reportBody').innerHTML=h;
@@ -835,6 +846,7 @@ function importJSON(e){
   rd.onload=()=>{ try{
     const d=JSON.parse(rd.result); const j=d.job||d;
     if(!j || typeof j!=='object' || !Array.isArray(j.rooms)) throw new Error('not a DMF job file (no rooms)');
+    if(JOB.rooms.length && !confirm('Replace the current job ('+(JOB.name||'unnamed')+', '+JOB.rooms.length+' room(s)) with "'+(j.name||file.name)+'"? Export the current job first if you want to keep it.')) return;
     if(!j.defaults) j.defaults=baseDefaults();
     j.name=j.name||''; j.addr=j.addr||''; j.date=j.date||new Date().toLocaleDateString();
     j.rooms.forEach(r=>{ r.id=r.id||uid(); if(!Array.isArray(r.existing)) r.existing=[]; if(!Array.isArray(r.groups)) r.groups=[];
