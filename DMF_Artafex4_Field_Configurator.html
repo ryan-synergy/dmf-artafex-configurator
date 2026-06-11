@@ -110,6 +110,7 @@ hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
       <div class="btnrow" style="margin:0">
         <button class="sm ghost" onclick="openJobs()">🗂 Jobs</button>
         <button class="sm ghost" onclick="openReport()">Reports</button>
+        <button class="sm ghost" onclick="openKit()">⊞ Tools</button>
       </div>
     </div>
     <div class="job">
@@ -151,6 +152,17 @@ hr.s{border:none;border-top:1px solid var(--line);margin:12px 0}
       <button class="ghost sm" onclick="exportJSON()">JSON</button>
     </div>
     <div id="reportBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="kitModal">
+  <div class="sheet" style="max-width:520px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Synergy Field Kit</h3>
+      <button class="sm" onclick="closeKit()">Close ✕</button>
+    </div>
+    <div id="kitBody" style="margin-top:12px"></div>
+    <div style="text-align:center;margin-top:14px"><a href="https://ryan-synergy.github.io/" style="color:var(--mut);font-size:12px">All tools — Field Kit home →</a></div>
   </div>
 </div>
 
@@ -1148,6 +1160,41 @@ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
   navigator.serviceWorker.register('sw.js').then(()=>{
     const b=document.getElementById('offlineBtn'); if(b) b.style.display='';
   }).catch(()=>{});
+}
+
+/* ===== Synergy Field Kit switcher ===== */
+const KIT_SELF='dmf';
+const KIT_FALLBACK=[
+  {id:'sitewalk',name:'SiteWalk',desc:'AV site surveys — rooms, flags, build sheet, exports',url:'https://ryan-synergy.github.io/sitewalk/'},
+  {id:'blueprinted',name:'Blueprinted',desc:'Savant config → retrofit takeoff',url:'https://ryan-synergy.github.io/blueprinted/'},
+  {id:'dmf',name:'DMF Configurator',desc:'DMF Artafex take-offs — verified SKUs',url:'https://ryan-synergy.github.io/dmf-artafex-configurator/'},
+  {id:'tvcalc',name:'TV Wall Calculator',desc:'Mounting layout calculator',url:'',status:'parked'}
+];
+let kitOpen=false;
+function kitList(){
+  try{const c=JSON.parse(localStorage.getItem('dmf.kit')||'null'); if(c&&Array.isArray(c.tools)&&c.tools.length) return c.tools;}catch(e){}
+  return KIT_FALLBACK;
+}
+function openKit(){
+  kitOpen=true; renderKit();
+  document.getElementById('kitModal').style.display='flex';
+  fetch('https://ryan-synergy.github.io/tools.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    if(j&&Array.isArray(j.tools)&&j.tools.length){
+      localStorage.setItem('dmf.kit',JSON.stringify(j));
+      if(kitOpen) renderKit();
+    }
+  }).catch(()=>{});
+}
+function closeKit(){kitOpen=false; document.getElementById('kitModal').style.display='none';}
+function renderKit(){
+  const row='display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--ink)';
+  document.getElementById('kitBody').innerHTML=kitList().map(t=>{
+    const here=t.id===KIT_SELF, parked=t.status==='parked'||!t.url;
+    const tag=here?'You’re here':(parked?'In the shop':'');
+    const body='<div style="flex:1;min-width:0"><div style="font-weight:600">'+esc(t.name)+'</div><div style="font-size:12px;color:var(--mut)">'+esc(t.desc||'')+'</div></div>';
+    if(tag) return '<div style="'+row+';opacity:.55">'+body+'<span style="font-size:11px;color:var(--mut)">'+tag+'</span></div>';
+    return '<a style="'+row+'" href="'+esc(t.url)+'">'+body+'<span style="color:var(--ok)">→</span></a>';
+  }).join('');
 }
 </script>
 </body>
